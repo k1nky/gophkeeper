@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package internal.proto;
+
+option go_package = "github.com/k1nky/gophkeeper/internal/proto";
+
+// GET /api/vault/{id}
+// GET /api/vault
+// POST /api/vault
+
+message NewVaultRequest {}
+message NewVaultResponse {}
+message ListVaultsRequest {}
+message ListVaultsResponse {}
+message GetVaultRequest {}
+message GetVaultResponse {}
+message SyncRequest {}
+
+message RegisterRequest {
+    string name = 1;
+    string password = 2;
+}
+
+message RegisterResponse {}
+
+service Keeper {
+    rpc NewVault(NewVaultRequest) returns (NewVaultResponse);
+    rpc Sync(SyncRequest) returns (stream GetVaultResponse);
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+}
