@@ -56,27 +56,28 @@ func (a *Adapter) PutSecret(ctx context.Context, s vault.Secret) (*vault.Secret,
 	}
 	if err := a.ostore.Put(ctx, string(s.Key), s.Data); err != nil {
 		// TODO: wrap error
-		return nil, fmt.Errorf("internal error")
+		return nil, err
 	}
 	if _, err := a.mstore.NewMeta(ctx, s.Key, s.Meta); err != nil {
+		// TODO: wrap error
 		a.ostore.Delete(ctx, string(s.Key))
-		return nil, fmt.Errorf("internal error")
+		return nil, err
 	}
 	return &s, nil
 }
 
 func (a *Adapter) GetSecret(ctx context.Context, uk vault.UniqueKey) (*vault.Secret, error) {
-	buf := bytes.NewBuffer(nil)
-	err := a.ostore.Get(ctx, string(uk), buf)
-	if err != nil {
-		return nil, err
-	}
 	m, err := a.mstore.GetMeta(ctx, uk)
 	if err != nil {
 		return nil, err
 	}
 	if m == nil {
 		return nil, nil
+	}
+	buf := bytes.NewBuffer(nil)
+	err = a.ostore.Get(ctx, string(uk), buf)
+	if err != nil {
+		return nil, err
 	}
 	s := &vault.Secret{
 		Key:  uk,
