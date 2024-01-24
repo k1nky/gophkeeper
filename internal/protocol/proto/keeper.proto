@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package internal.protocol.proto;
+
+option go_package = "github.com/k1nky/gophkeeper/internal/protocol/proto";
+
+message Meta {
+    string id = 1;
+    string extra = 2;
+}
+
+message Data {
+    bytes chunk_data = 1;
+}
+
+message GetSecretRequest {
+    string key = 1;
+}
+
+message PutSecretRequest {
+    oneof data {
+        Meta meta = 1;
+        Data chunk_data = 2;
+    }
+}
+
+message ListSecretRequest {}
+
+message ListSecretResponse {
+    repeated Meta meta = 1;
+}
+
+
+service Keeper {
+    rpc GetSecretMeta(GetSecretRequest) returns (Meta);
+    rpc GetSecretData(GetSecretRequest) returns (stream Data);
+    rpc PutSecret(stream PutSecretRequest) returns (Meta);
+    rpc ListSecrets(ListSecretRequest) returns (ListSecretResponse);
+}

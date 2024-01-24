@@ -1,7 +1,6 @@
 package store
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
@@ -13,6 +12,8 @@ type Adapter struct {
 	mstore MetaStore
 	ostore ObjectStore
 }
+
+var _ Store = new(Adapter)
 
 func New(mstore MetaStore, ostore ObjectStore) *Adapter {
 	return &Adapter{
@@ -48,25 +49,29 @@ func (a *Adapter) GetUserByLogin(ctx context.Context, login string) (*user.User,
 	return a.mstore.GetUserByLogin(ctx, login)
 }
 
-func (a *Adapter) PutSecret(ctx context.Context, s vault.Secret) (*vault.Secret, error) {
-	s.Key = vault.NewUniqueKey()
-	if len(s.Key) == 0 {
+func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
+	meta.Key = vault.NewUniqueKey()
+	if len(meta.Key) == 0 {
 		// TODO: wrap error
 		return nil, fmt.Errorf("internal error")
 	}
-	if err := a.ostore.Put(ctx, string(s.Key), s.Data); err != nil {
+	if err := a.ostore.Put(ctx, string(meta.Key), data); err != nil {
 		// TODO: wrap error
 		return nil, err
 	}
-	if _, err := a.mstore.NewMeta(ctx, s.Key, s.Meta); err != nil {
+	if _, err := a.mstore.NewMeta(ctx, meta); err != nil {
 		// TODO: wrap error
-		a.ostore.Delete(ctx, string(s.Key))
+		a.ostore.Delete(ctx, string(meta.Key))
 		return nil, err
 	}
-	return &s, nil
+	return &meta, nil
 }
 
-func (a *Adapter) GetSecret(ctx context.Context, uk vault.UniqueKey) (*vault.Secret, error) {
+func (a *Adapter) GetSecretData(ctx context.Context, uk vault.UniqueKey) (*vault.DataReader, error) {
+	return a.ostore.Get(ctx, string(uk))
+}
+
+func (a *Adapter) GetSecretMeta(ctx context.Context, uk vault.UniqueKey) (*vault.Meta, error) {
 	m, err := a.mstore.GetMeta(ctx, uk)
 	if err != nil {
 		return nil, err
@@ -74,17 +79,7 @@ func (a *Adapter) GetSecret(ctx context.Context, uk vault.UniqueKey) (*vault.Sec
 	if m == nil {
 		return nil, nil
 	}
-	buf := bytes.NewBuffer(nil)
-	err = a.ostore.Get(ctx, string(uk), buf)
-	if err != nil {
-		return nil, err
-	}
-	s := &vault.Secret{
-		Key:  uk,
-		Meta: *m,
-		Data: buf,
-	}
-	return s, nil
+	return m, err
 }
 
 func (a *Adapter) ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error) {

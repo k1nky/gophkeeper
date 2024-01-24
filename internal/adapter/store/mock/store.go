@@ -65,17 +65,18 @@ func (mr *MockObjectStoreMockRecorder) Delete(ctx, key interface{}) *gomock.Call
 }
 
 // Get mocks base method.
-func (m *MockObjectStore) Get(ctx context.Context, key string, obj vault.Object) error {
+func (m *MockObjectStore) Get(ctx context.Context, key string) (*vault.DataReader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, key, obj)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "Get", ctx, key)
+	ret0, _ := ret[0].(*vault.DataReader)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockObjectStoreMockRecorder) Get(ctx, key, obj interface{}) *gomock.Call {
+func (mr *MockObjectStoreMockRecorder) Get(ctx, key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockObjectStore)(nil).Get), ctx, key, obj)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockObjectStore)(nil).Get), ctx, key)
 }
 
 // Open mocks base method.
@@ -93,7 +94,7 @@ func (mr *MockObjectStoreMockRecorder) Open(ctx interface{}) *gomock.Call {
 }
 
 // Put mocks base method.
-func (m *MockObjectStore) Put(ctx context.Context, key string, obj vault.Object) error {
+func (m *MockObjectStore) Put(ctx context.Context, key string, obj *vault.DataReader) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Put", ctx, key, obj)
 	ret0, _ := ret[0].(error)
@@ -189,18 +190,18 @@ func (mr *MockMetaStoreMockRecorder) ListMetaByUser(ctx, id interface{}) *gomock
 }
 
 // NewMeta mocks base method.
-func (m_2 *MockMetaStore) NewMeta(ctx context.Context, uk vault.UniqueKey, m vault.Meta) (*vault.Meta, error) {
+func (m_2 *MockMetaStore) NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, error) {
 	m_2.ctrl.T.Helper()
-	ret := m_2.ctrl.Call(m_2, "NewMeta", ctx, uk, m)
+	ret := m_2.ctrl.Call(m_2, "NewMeta", ctx, m)
 	ret0, _ := ret[0].(*vault.Meta)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewMeta indicates an expected call of NewMeta.
-func (mr *MockMetaStoreMockRecorder) NewMeta(ctx, uk, m interface{}) *gomock.Call {
+func (mr *MockMetaStoreMockRecorder) NewMeta(ctx, m interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewMeta", reflect.TypeOf((*MockMetaStore)(nil).NewMeta), ctx, uk, m)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewMeta", reflect.TypeOf((*MockMetaStore)(nil).NewMeta), ctx, m)
 }
 
 // NewUser mocks base method.
@@ -269,19 +270,34 @@ func (mr *MockStoreMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStore)(nil).Close))
 }
 
-// GetSecret mocks base method.
-func (m *MockStore) GetSecret(ctx context.Context, uk vault.UniqueKey) (*vault.Secret, error) {
+// GetSecretData mocks base method.
+func (m *MockStore) GetSecretData(ctx context.Context, uk vault.UniqueKey) (*vault.DataReader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecret", ctx, uk)
-	ret0, _ := ret[0].(*vault.Secret)
+	ret := m.ctrl.Call(m, "GetSecretData", ctx, uk)
+	ret0, _ := ret[0].(*vault.DataReader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetSecret indicates an expected call of GetSecret.
-func (mr *MockStoreMockRecorder) GetSecret(ctx, uk interface{}) *gomock.Call {
+// GetSecretData indicates an expected call of GetSecretData.
+func (mr *MockStoreMockRecorder) GetSecretData(ctx, uk interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecret", reflect.TypeOf((*MockStore)(nil).GetSecret), ctx, uk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockStore)(nil).GetSecretData), ctx, uk)
+}
+
+// GetSecretMeta mocks base method.
+func (m *MockStore) GetSecretMeta(ctx context.Context, uk vault.UniqueKey) (*vault.Meta, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSecretMeta", ctx, uk)
+	ret0, _ := ret[0].(*vault.Meta)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSecretMeta indicates an expected call of GetSecretMeta.
+func (mr *MockStoreMockRecorder) GetSecretMeta(ctx, uk interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretMeta", reflect.TypeOf((*MockStore)(nil).GetSecretMeta), ctx, uk)
 }
 
 // GetUserByLogin mocks base method.
@@ -344,15 +360,16 @@ func (mr *MockStoreMockRecorder) Open(ctx interface{}) *gomock.Call {
 }
 
 // PutSecret mocks base method.
-func (m *MockStore) PutSecret(ctx context.Context, s vault.Secret) error {
+func (m *MockStore) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PutSecret", ctx, s)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "PutSecret", ctx, meta, data)
+	ret0, _ := ret[0].(*vault.Meta)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // PutSecret indicates an expected call of PutSecret.
-func (mr *MockStoreMockRecorder) PutSecret(ctx, s interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) PutSecret(ctx, meta, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutSecret", reflect.TypeOf((*MockStore)(nil).PutSecret), ctx, s)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutSecret", reflect.TypeOf((*MockStore)(nil).PutSecret), ctx, meta, data)
 }

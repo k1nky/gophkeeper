@@ -1,6 +1,8 @@
 package vault
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"io"
@@ -8,24 +10,50 @@ import (
 	"github.com/k1nky/gophkeeper/internal/entity/user"
 )
 
-type Object interface {
-	Bytes() []byte
-	Read(p []byte) (n int, err error)
-	ReadFrom(r io.Reader) (n int64, err error)
-	Write(p []byte) (n int, err error)
-	WriteTo(w io.Writer) (n int64, err error)
+type BytesBuffer struct {
+	bytes.Buffer
 }
-type Meta struct {
-	UserID user.ID
-	Extra  string
+
+func (bb *BytesBuffer) Close() error {
+	return nil
+}
+
+func NewBytesBuffer(p []byte) *BytesBuffer {
+	return &BytesBuffer{
+		Buffer: *bytes.NewBuffer(p),
+	}
+}
+
+type DataReader struct {
+	origin io.ReadCloser
+	reader *bufio.Reader
+}
+
+func NewDataReader(r io.ReadCloser) *DataReader {
+	return &DataReader{
+		origin: r,
+		reader: bufio.NewReader(r),
+	}
+}
+
+func (d *DataReader) Read(p []byte) (n int, err error) {
+	return d.reader.Read(p)
+}
+
+func (d *DataReader) WriteTo(w io.Writer) (n int64, err error) {
+	return d.reader.WriteTo(w)
+}
+
+func (d *DataReader) Close() error {
+	return d.origin.Close()
 }
 
 type UniqueKey string
 
-type Secret struct {
-	Key  UniqueKey
-	Data Object
-	Meta Meta
+type Meta struct {
+	UserID user.ID
+	Key    UniqueKey
+	Extra  string
 }
 
 type List map[UniqueKey]Meta

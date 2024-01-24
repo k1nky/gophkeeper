@@ -2,14 +2,117 @@ package grpc
 
 import (
 	"context"
+	"io"
 
-	pb "github.com/k1nky/gophkeeper/internal/proto"
+	"github.com/k1nky/gophkeeper/internal/entity/user"
+	"github.com/k1nky/gophkeeper/internal/entity/vault"
+	pb "github.com/k1nky/gophkeeper/internal/protocol/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Adapter struct {
 	pb.UnimplementedKeeperServer
+	auth   authService
+	keeper keeperService
 }
 
-func (a *Adapter) Register(ctx context.Context, in *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	return &pb.RegisterResponse{}, nil
+func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretRequest) (*pb.Meta, error) {
+	_, ok := ctx.Value(keyUserClaims).(user.PrivateClaims)
+	if !ok {
+		return nil, ErrUnauthenticated
+	}
+	m, err := a.keeper.GetSecretMeta(ctx, vault.UniqueKey(in.Key))
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &pb.Meta{
+		Id:    string(m.Key),
+		Extra: m.Extra,
+	}, nil
+}
+
+func (a *Adapter) GetSecretData(in *pb.GetSecretRequest, stream pb.Keeper_GetSecretDataServer) error {
+	claims, ok := stream.Context().Value(keyUserClaims).(user.PrivateClaims)
+	if !ok {
+		return ErrUnauthenticated
+	}
+	reader, err := a.keeper.GetSecretData(stream.Context(), vault.UniqueKey(in.Key), claims.ID)
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
+	defer reader.Close()
+	buffer := make([]byte, 1024)
+	for {
+		n, err := reader.Read(buffer)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return status.Error(codes.Unknown, "")
+		}
+		chunk := &pb.Data{
+			ChunkData: buffer[:n],
+		}
+		if err := stream.Send(chunk); err != nil {
+			return status.Error(codes.Unknown, "")
+		}
+	}
+
+	return nil
+}
+
+func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
+	claims, ok := stream.Context().Value(keyUserClaims).(user.PrivateClaims)
+	if !ok {
+		return ErrUnauthenticated
+	}
+	req, err := stream.Recv()
+	if err != nil {
+		return status.Error(codes.Unknown, "")
+	}
+	meta := vault.Meta{
+		UserID: claims.ID,
+		Extra:  req.GetMeta().Extra,
+	}
+	buf := vault.NewBytesBuffer(nil)
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return status.Error(codes.Unknown, "")
+		}
+		chunk := req.GetChunkData().ChunkData
+		buf.Write(chunk)
+	}
+	data := vault.NewDataReader(buf)
+	m, err := a.keeper.PutSecret(stream.Context(), meta, data)
+	if err != nil {
+		return status.Error(codes.Unknown, "")
+	}
+	return stream.SendAndClose(&pb.Meta{
+		Id:    string(m.Key),
+		Extra: m.Extra,
+	})
+}
+
+func (a *Adapter) ListSecrets(ctx context.Context, in *pb.ListSecretRequest) (*pb.ListSecretResponse, error) {
+	claims, ok := ctx.Value(keyUserClaims).(user.PrivateClaims)
+	if !ok {
+		return nil, ErrUnauthenticated
+	}
+	secrets, err := a.keeper.ListSecretsByUser(ctx, claims.ID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	list := &pb.ListSecretResponse{}
+	for k, v := range secrets {
+		list.Meta = append(list.Meta, &pb.Meta{
+			Id:    string(k),
+			Extra: v.Extra,
+		})
+	}
+	return list, nil
 }

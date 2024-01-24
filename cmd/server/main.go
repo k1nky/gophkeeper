@@ -1,22 +1,39 @@
 package main
 
 import (
+	"context"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	grpchandler "github.com/k1nky/gophkeeper/internal/adapter/grpc"
 	httphandler "github.com/k1nky/gophkeeper/internal/adapter/http"
-	pb "github.com/k1nky/gophkeeper/internal/proto"
+	"github.com/k1nky/gophkeeper/internal/adapter/store"
+	"github.com/k1nky/gophkeeper/internal/logger"
+	pb "github.com/k1nky/gophkeeper/internal/protocol/proto"
+	"github.com/k1nky/gophkeeper/internal/service/auth"
+	"github.com/k1nky/gophkeeper/internal/service/keeper"
+	"github.com/k1nky/gophkeeper/internal/store/meta/bolt"
+	"github.com/k1nky/gophkeeper/internal/store/objects/filestore"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	hh := &httphandler.Adapter{}
+	store := store.New(bolt.New("meta.db"), filestore.New("/tmp/ostore"))
+	auth := auth.New("secret", time.Hour, store, &logger.Blackhole{})
+	keeper := keeper.New(store, &logger.Blackhole{})
+	hh := httphandler.New(auth, keeper, &logger.Blackhole{})
 	gh := &grpchandler.Adapter{}
 	grpcServer := grpc.NewServer()
 	pb.RegisterKeeperServer(grpcServer, gh)
+
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	store.Open(ctx)
 	srv := &http.Server{
-		Addr: ":80",
+		Addr: ":8080",
 		Handler: func(grpcServer *grpc.Server, httpServer http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
@@ -28,4 +45,5 @@ func main() {
 		}(grpcServer, hh),
 	}
 	srv.ListenAndServe()
+	<-ctx.Done()
 }

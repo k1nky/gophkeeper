@@ -119,49 +119,46 @@ func (suite *adapterTestSuite) TestGetUserByLoginWithError() {
 
 func (suite *adapterTestSuite) TestPutSecret() {
 	ctx := context.TODO()
-	s := vault.Secret{
-		Meta: vault.Meta{
-			UserID: 1,
-			Extra:  "extra data",
-		},
-		Data: bytes.NewBufferString("some super secret"),
+	m := vault.Meta{
+		UserID: 1,
+		Extra:  "extra data",
 	}
+	d := vault.NewDataReader(vault.NewBytesBuffer([]byte("some super secret")))
 
-	suite.mstore.EXPECT().NewMeta(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+	suite.mstore.EXPECT().NewMeta(gomock.Any(), gomock.Any()).Return(nil, nil)
 	suite.ostore.EXPECT().Put(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-	newSecret, err := suite.a.PutSecret(ctx, s)
+	newMeta, err := suite.a.PutSecret(ctx, m, d)
 	suite.Assert().NoError(err)
-	s.Key = newSecret.Key
-	suite.Assert().Equal(s, *newSecret)
+	m.Key = newMeta.Key
+	suite.Assert().Equal(m, *newMeta)
 }
 
-func (suite *adapterTestSuite) TestGetSecret() {
+func (suite *adapterTestSuite) TestGetSecretMeta() {
 	ctx := context.TODO()
-	buf := bytes.NewBufferString("some super secret")
-	s := vault.Secret{
-		Key: vault.NewUniqueKey(),
-		Meta: vault.Meta{
-			UserID: 1,
-			Extra:  "extra data",
-		},
-		Data: buf,
+	m := vault.Meta{
+		Key:    vault.NewUniqueKey(),
+		UserID: 1,
+		Extra:  "extra data",
 	}
-
-	suite.mstore.EXPECT().GetMeta(gomock.Any(), gomock.Any()).Return(&s.Meta, nil)
-	suite.ostore.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, *buf).Return(nil)
-
-	got, err := suite.a.GetSecret(ctx, s.Key)
+	suite.mstore.EXPECT().GetMeta(gomock.Any(), gomock.Any()).Return(&m, nil)
+	got, err := suite.a.GetSecretMeta(ctx, m.Key)
 	suite.Assert().NoError(err)
-	suite.Assert().Equal(s, *got)
+	suite.Assert().Equal(m, *got)
 }
 
-func (suite *adapterTestSuite) TestGetSecretNotFound() {
+func (suite *adapterTestSuite) TestGetSecretData() {
 	ctx := context.TODO()
+	var expected = []byte("some super secret")
+	uk := vault.NewUniqueKey()
 
-	suite.mstore.EXPECT().GetMeta(gomock.Any(), gomock.Any()).Return(nil, nil)
+	suite.ostore.EXPECT().Get(gomock.Any(), gomock.Any()).Return(vault.NewDataReader(vault.NewBytesBuffer(expected)), nil)
 
-	got, err := suite.a.GetSecret(ctx, vault.NewUniqueKey())
+	reader, err := suite.a.GetSecretData(ctx, uk)
 	suite.Assert().NoError(err)
-	suite.Assert().Nil(got)
+	got := bytes.NewBuffer(nil)
+	_, err = got.ReadFrom(reader)
+	suite.Assert().NoError(err)
+	suite.Assert().Equal(expected, got.Bytes())
+
 }

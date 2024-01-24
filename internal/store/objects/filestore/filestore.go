@@ -2,8 +2,9 @@ package filestore
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
+	"crypto/sha256"
+	"fmt"
+	"io"
 	"os"
 	"path"
 
@@ -23,32 +24,33 @@ func New(path string) *FileStore {
 	}
 }
 
-func (fs *FileStore) write(path string, obj vault.Object) error {
+func (fs *FileStore) write(path string, obj *vault.DataReader) error {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0660)
 	if err != nil {
 		return err
 	}
-	_, err = obj.WriteTo(f)
+	defer f.Close()
+	_, err = io.Copy(f, obj)
+
 	return err
 }
 
-func (fs *FileStore) read(path string, obj vault.Object) error {
+func (fs *FileStore) read(path string) (*vault.DataReader, error) {
 	f, err := os.OpenFile(path, os.O_RDONLY, 0660)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return vault.ErrObjectNotExists
+			return nil, vault.ErrObjectNotExists
 		}
-		return err
+		return nil, err
 	}
-	defer f.Close()
-	_, err = obj.ReadFrom(f)
-	return err
+
+	return vault.NewDataReader(f), nil
 }
 
 func (fs *FileStore) path(relative string) string {
 	// TODO: sync.Poolhash
-	h := md5.New()
-	s := hex.EncodeToString(h.Sum([]byte(relative)))
+	h := sha256.New()
+	s := fmt.Sprintf("%x", h.Sum([]byte(relative)))
 	return path.Join(fs.Path, s)
 }
 
@@ -60,15 +62,18 @@ func (fs *FileStore) Close() error {
 	return nil
 }
 
-func (fs *FileStore) Put(ctx context.Context, key string, obj vault.Object) error {
+func (fs *FileStore) Put(ctx context.Context, key string, obj *vault.DataReader) error {
+	if obj == nil {
+		return nil
+	}
 	path := fs.path(key)
 	err := fs.write(path, obj)
 	return err
 }
 
-func (fs *FileStore) Get(ctx context.Context, key string, obj vault.Object) error {
+func (fs *FileStore) Get(ctx context.Context, key string) (*vault.DataReader, error) {
 	path := fs.path(key)
-	return fs.read(path, obj)
+	return fs.read(path)
 }
 
 func (fs *FileStore) Delete(ctx context.Context, key string) error {

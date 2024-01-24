@@ -9,7 +9,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-func (bs *BoltStorage) NewMeta(ctx context.Context, uk vault.UniqueKey, m vault.Meta) (*vault.Meta, error) {
+func (bs *BoltStorage) NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, error) {
 	err := bs.DB.Update(func(tx *bolt.Tx) error {
 		// TODO: userid has existed
 		// TODO: uk must be unique
@@ -22,7 +22,7 @@ func (bs *BoltStorage) NewMeta(ctx context.Context, uk vault.UniqueKey, m vault.
 				return err
 			}
 		}
-		uml = append(uml, uk)
+		uml = append(uml, m.Key)
 		if value, err := serialize(uml); err != nil {
 			return err
 		} else {
@@ -36,7 +36,7 @@ func (bs *BoltStorage) NewMeta(ctx context.Context, uk vault.UniqueKey, m vault.
 			return err
 		}
 
-		return b.Put(tb(string(uk)), value)
+		return b.Put(tb(string(m.Key)), value)
 	})
 	if err == nil {
 		return &m, nil
