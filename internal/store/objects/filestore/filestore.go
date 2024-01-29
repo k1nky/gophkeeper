@@ -3,7 +3,7 @@ package filestore
 import (
 	"context"
 	"crypto/sha256"
-	"fmt"
+	"encoding/hex"
 	"io"
 	"os"
 	"path"
@@ -50,7 +50,7 @@ func (fs *FileStore) read(path string) (*vault.DataReader, error) {
 func (fs *FileStore) path(relative string) string {
 	// TODO: sync.Poolhash
 	h := sha256.New()
-	s := fmt.Sprintf("%x", h.Sum([]byte(relative)))
+	s := hex.EncodeToString(h.Sum([]byte(relative)))
 	return path.Join(fs.Path, s)
 }
 
