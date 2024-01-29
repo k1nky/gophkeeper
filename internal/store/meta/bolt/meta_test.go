@@ -60,8 +60,7 @@ func (suite *metaTestSuite) TestGetMeta() {
 }
 
 func (suite *metaTestSuite) TestListMetaByUser() {
-	uks := make(vault.List, 0)
-	expteced := []vault.Meta{
+	expteced := vault.List{
 		{
 			UserID: 1,
 			Extra:  "some extra",
@@ -74,9 +73,7 @@ func (suite *metaTestSuite) TestListMetaByUser() {
 		},
 	}
 	for _, m := range expteced {
-		uk := vault.NewUniqueKey()
-		nm, err := suite.bs.NewMeta(context.TODO(), m)
-		uks[uk] = *nm
+		_, err := suite.bs.NewMeta(context.TODO(), m)
 		suite.Assert().NoError(err)
 
 	}
@@ -88,5 +85,5 @@ func (suite *metaTestSuite) TestListMetaByUser() {
 	suite.Assert().NoError(err)
 	list, err := suite.bs.ListMetaByUser(context.TODO(), 1)
 	suite.Assert().NoError(err)
-	suite.Assert().Equal(uks, list)
+	suite.Assert().Equal(expteced, list)
 }

@@ -105,18 +105,18 @@ func (m *MockkeeperService) EXPECT() *MockkeeperServiceMockRecorder {
 }
 
 // GetSecretData mocks base method.
-func (m *MockkeeperService) GetSecretData(ctx context.Context, uk vault.UniqueKey, userID user.ID) (*vault.DataReader, error) {
+func (m *MockkeeperService) GetSecretData(ctx context.Context, uk vault.UniqueKey) (*vault.DataReader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretData", ctx, uk, userID)
+	ret := m.ctrl.Call(m, "GetSecretData", ctx, uk)
 	ret0, _ := ret[0].(*vault.DataReader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecretData indicates an expected call of GetSecretData.
-func (mr *MockkeeperServiceMockRecorder) GetSecretData(ctx, uk, userID interface{}) *gomock.Call {
+func (mr *MockkeeperServiceMockRecorder) GetSecretData(ctx, uk interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockkeeperService)(nil).GetSecretData), ctx, uk, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockkeeperService)(nil).GetSecretData), ctx, uk)
 }
 
 // GetSecretMeta mocks base method.

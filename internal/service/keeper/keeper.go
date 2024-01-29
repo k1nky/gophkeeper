@@ -20,7 +20,11 @@ func New(store storage, log logger) *Service {
 	return s
 }
 
-func (s *Service) GetSecretData(ctx context.Context, uk vault.UniqueKey, userID user.ID) (*vault.DataReader, error) {
+func (s *Service) GetSecretData(ctx context.Context, uk vault.UniqueKey) (*vault.DataReader, error) {
+	claims, ok := user.GetEffectiveUser(ctx)
+	if !ok {
+		// TODO:
+	}
 	meta, err := s.store.GetSecretMeta(ctx, uk)
 	if err != nil {
 		return nil, err
@@ -28,7 +32,7 @@ func (s *Service) GetSecretData(ctx context.Context, uk vault.UniqueKey, userID 
 	if meta == nil {
 		return nil, nil
 	}
-	if meta.UserID != userID {
+	if meta.UserID != claims.ID {
 		return nil, user.ErrUnathorized
 	}
 
@@ -46,8 +50,4 @@ func (s *Service) PutSecret(ctx context.Context, meta vault.Meta, data *vault.Da
 
 func (s *Service) ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error) {
 	return s.store.ListSecretsByUser(ctx, userID)
-}
-
-func (s *Service) Sync() error {
-	return nil
 }

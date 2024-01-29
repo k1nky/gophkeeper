@@ -12,8 +12,9 @@ type authService interface {
 	Authorize(token string) (user.PrivateClaims, error)
 }
 
+//go:generate mockgen -source=contract.go -destination=mock/auth.go -package=mock keeperService
 type keeperService interface {
-	GetSecretData(ctx context.Context, uk vault.UniqueKey, userID user.ID) (*vault.DataReader, error)
+	GetSecretData(ctx context.Context, uk vault.UniqueKey) (*vault.DataReader, error)
 	GetSecretMeta(ctx context.Context, uk vault.UniqueKey) (*vault.Meta, error)
 	ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error)
 	PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error)

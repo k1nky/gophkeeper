@@ -1,6 +1,10 @@
 package user
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"context"
+
+	"golang.org/x/crypto/bcrypt"
+)
 
 type ID uint64
 
@@ -16,6 +20,12 @@ type PrivateClaims struct {
 	ID    ID
 	Login string
 }
+
+type contextKey int
+
+const (
+	KeyUserClaims contextKey = iota
+)
 
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 15)
@@ -41,4 +51,13 @@ func NewPrivateClaims(u User) PrivateClaims {
 		ID:    u.ID,
 		Login: u.Login,
 	}
+}
+
+func NewContextWithClaims(parent context.Context, claims PrivateClaims) context.Context {
+	return context.WithValue(parent, KeyUserClaims, claims)
+}
+
+func GetEffectiveUser(ctx context.Context) (PrivateClaims, bool) {
+	claims, ok := ctx.Value(KeyUserClaims).(PrivateClaims)
+	return claims, ok
 }

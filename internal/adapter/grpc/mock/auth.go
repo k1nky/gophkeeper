@@ -75,18 +75,18 @@ func (m *MockkeeperService) EXPECT() *MockkeeperServiceMockRecorder {
 }
 
 // GetSecretData mocks base method.
-func (m *MockkeeperService) GetSecretData(ctx context.Context, uk vault.UniqueKey, userID user.ID) (*vault.DataReader, error) {
+func (m *MockkeeperService) GetSecretData(ctx context.Context, uk vault.UniqueKey) (*vault.DataReader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretData", ctx, uk, userID)
+	ret := m.ctrl.Call(m, "GetSecretData", ctx, uk)
 	ret0, _ := ret[0].(*vault.DataReader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecretData indicates an expected call of GetSecretData.
-func (mr *MockkeeperServiceMockRecorder) GetSecretData(ctx, uk, userID interface{}) *gomock.Call {
+func (mr *MockkeeperServiceMockRecorder) GetSecretData(ctx, uk interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockkeeperService)(nil).GetSecretData), ctx, uk, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockkeeperService)(nil).GetSecretData), ctx, uk)
 }
 
 // GetSecretMeta mocks base method.
@@ -117,6 +117,21 @@ func (m *MockkeeperService) ListSecretsByUser(ctx context.Context, userID user.I
 func (mr *MockkeeperServiceMockRecorder) ListSecretsByUser(ctx, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSecretsByUser", reflect.TypeOf((*MockkeeperService)(nil).ListSecretsByUser), ctx, userID)
+}
+
+// PutSecret mocks base method.
+func (m *MockkeeperService) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PutSecret", ctx, meta, data)
+	ret0, _ := ret[0].(*vault.Meta)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PutSecret indicates an expected call of PutSecret.
+func (mr *MockkeeperServiceMockRecorder) PutSecret(ctx, meta, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutSecret", reflect.TypeOf((*MockkeeperService)(nil).PutSecret), ctx, meta, data)
 }
 
 // Mocklogger is a mock of logger interface.

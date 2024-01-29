@@ -24,7 +24,9 @@ message PutSecretRequest {
     }
 }
 
-message ListSecretRequest {}
+message ListSecretRequest {
+    int64 user_id = 1;
+}
 
 message ListSecretResponse {
     repeated Meta meta = 1;

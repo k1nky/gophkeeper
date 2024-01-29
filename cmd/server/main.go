@@ -23,10 +23,10 @@ import (
 
 func main() {
 	store := store.New(bolt.New("meta.db"), filestore.New("/tmp/ostore"))
-	auth := auth.New("secret", time.Hour, store, &logger.Blackhole{})
+	auth := auth.New("secret", time.Hour*175200, store, &logger.Blackhole{})
 	keeper := keeper.New(store, &logger.Blackhole{})
 	hh := httphandler.New(auth, keeper, &logger.Blackhole{})
-	gh := &grpchandler.Adapter{}
+	gh := grpchandler.New(auth, keeper)
 	grpcServer := grpc.NewServer()
 	pb.RegisterKeeperServer(grpcServer, gh)
 

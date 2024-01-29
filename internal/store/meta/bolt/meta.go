@@ -82,7 +82,7 @@ func (bs *BoltStorage) ListMetaByUser(ctx context.Context, userID user.ID) (vaul
 			if err := deserialize(b.Get([]byte(uk)), &m); err != nil {
 				return err
 			}
-			list[uk] = m
+			list = append(list, m)
 		}
 		return nil
 	})

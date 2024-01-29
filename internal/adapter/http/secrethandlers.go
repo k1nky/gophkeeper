@@ -30,13 +30,8 @@ func (a *Adapter) GetSecretMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Adapter) GetSecretData(w http.ResponseWriter, r *http.Request) {
-	claims, ok := r.Context().Value(keyUserClaims).(user.PrivateClaims)
-	if !ok {
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
 	uk := chi.URLParam(r, "id")
-	data, err := a.keeper.GetSecretData(r.Context(), vault.UniqueKey(uk), claims.ID)
+	data, err := a.keeper.GetSecretData(r.Context(), vault.UniqueKey(uk))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -51,7 +46,7 @@ func (a *Adapter) GetSecretData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Adapter) PutSecret(w http.ResponseWriter, r *http.Request) {
-	claims, ok := r.Context().Value(keyUserClaims).(user.PrivateClaims)
+	claims, ok := user.GetEffectiveUser(r.Context())
 	if !ok {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
@@ -79,7 +74,7 @@ func (a *Adapter) PutSecret(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Adapter) PutSecretFile(w http.ResponseWriter, r *http.Request) {
-	claims, ok := r.Context().Value(keyUserClaims).(user.PrivateClaims)
+	claims, ok := user.GetEffectiveUser(r.Context())
 	if !ok {
 		http.Error(w, "", http.StatusInternalServerError)
 		return

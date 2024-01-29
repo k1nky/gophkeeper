@@ -56,7 +56,7 @@ func AuthorizationUnaryInterceptor(auth authService) grpc.UnaryServerInterceptor
 		if err != nil {
 			return nil, err
 		}
-		newCtx := context.WithValue(ctx, keyUserClaims, *claims)
+		newCtx := user.NewContextWithClaims(ctx, *claims)
 
 		return handler(newCtx, req)
 	}
@@ -68,7 +68,7 @@ func AuthorizationStreamInterceptor(auth authService) grpc.StreamServerIntercept
 		if err != nil {
 			return err
 		}
-		ctx := context.WithValue(ss.Context(), keyUserClaims, *claims)
+		ctx := user.NewContextWithClaims(ss.Context(), *claims)
 		w := &wrapper{
 			ctx:          ctx,
 			ServerStream: ss,

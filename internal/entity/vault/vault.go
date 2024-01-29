@@ -56,7 +56,7 @@ type Meta struct {
 	Extra  string
 }
 
-type List map[UniqueKey]Meta
+type List []Meta
 
 func NewUniqueKey() UniqueKey {
 	b := make([]byte, 32)

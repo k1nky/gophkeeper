@@ -1,18 +1,11 @@
 package http
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"time"
 
 	"github.com/k1nky/gophkeeper/internal/entity/user"
-)
-
-type contextKey int
-
-const (
-	keyUserClaims contextKey = iota
 )
 
 type loggingWriter struct {
@@ -42,7 +35,7 @@ func AuthorizeMiddleware(auth authService) func(http.Handler) http.Handler {
 				}
 				return
 			}
-			ctx := context.WithValue(r.Context(), keyUserClaims, claims)
+			ctx := user.NewContextWithClaims(r.Context(), claims)
 			newRequest := r.WithContext(ctx)
 			next.ServeHTTP(w, newRequest)
 		})

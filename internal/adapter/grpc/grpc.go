@@ -17,11 +17,14 @@ type Adapter struct {
 	keeper keeperService
 }
 
-func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretRequest) (*pb.Meta, error) {
-	_, ok := ctx.Value(keyUserClaims).(user.PrivateClaims)
-	if !ok {
-		return nil, ErrUnauthenticated
+func New(auth authService, keeper keeperService) *Adapter {
+	return &Adapter{
+		auth:   auth,
+		keeper: keeper,
 	}
+}
+
+func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretRequest) (*pb.Meta, error) {
 	m, err := a.keeper.GetSecretMeta(ctx, vault.UniqueKey(in.Key))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -33,11 +36,7 @@ func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretRequest) (*
 }
 
 func (a *Adapter) GetSecretData(in *pb.GetSecretRequest, stream pb.Keeper_GetSecretDataServer) error {
-	claims, ok := stream.Context().Value(keyUserClaims).(user.PrivateClaims)
-	if !ok {
-		return ErrUnauthenticated
-	}
-	reader, err := a.keeper.GetSecretData(stream.Context(), vault.UniqueKey(in.Key), claims.ID)
+	reader, err := a.keeper.GetSecretData(stream.Context(), vault.UniqueKey(in.Key))
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
@@ -63,14 +62,11 @@ func (a *Adapter) GetSecretData(in *pb.GetSecretRequest, stream pb.Keeper_GetSec
 }
 
 func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
-	claims, ok := stream.Context().Value(keyUserClaims).(user.PrivateClaims)
-	if !ok {
-		return ErrUnauthenticated
-	}
 	req, err := stream.Recv()
 	if err != nil {
 		return status.Error(codes.Unknown, "")
 	}
+	claims, _ := user.GetEffectiveUser(stream.Context())
 	meta := vault.Meta{
 		UserID: claims.ID,
 		Extra:  req.GetMeta().Extra,
@@ -99,18 +95,14 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 }
 
 func (a *Adapter) ListSecrets(ctx context.Context, in *pb.ListSecretRequest) (*pb.ListSecretResponse, error) {
-	claims, ok := ctx.Value(keyUserClaims).(user.PrivateClaims)
-	if !ok {
-		return nil, ErrUnauthenticated
-	}
-	secrets, err := a.keeper.ListSecretsByUser(ctx, claims.ID)
+	secrets, err := a.keeper.ListSecretsByUser(ctx, user.ID(in.UserId))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	list := &pb.ListSecretResponse{}
-	for k, v := range secrets {
+	for _, v := range secrets {
 		list.Meta = append(list.Meta, &pb.Meta{
-			Id:    string(k),
+			Id:    string(v.Key),
 			Extra: v.Extra,
 		})
 	}
