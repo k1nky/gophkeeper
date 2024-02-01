@@ -25,6 +25,7 @@ type DecryptReader struct {
 	block cipher.Block
 }
 
+// совместим openssl enc -aes-256-cbc -nosalt -e -out <file> -K "<key>" -iv 0
 func NewEncryptReader(secret string, r io.Reader) (*EncryptReader, error) {
 	key := sha256.Sum256([]byte(secret))
 	block, err := aes.NewCipher(key[:])
@@ -39,6 +40,7 @@ func NewEncryptReader(secret string, r io.Reader) (*EncryptReader, error) {
 	}, nil
 }
 
+// совместим openssl enc -aes-256-cbc -nosalt -d -out <file> -K "<key>" -iv 0
 func NewDecryptReader(secret string, r io.Reader) (*DecryptReader, error) {
 	key := sha256.Sum256([]byte(secret))
 	block, err := aes.NewCipher(key[:])
@@ -55,6 +57,7 @@ func NewDecryptReader(secret string, r io.Reader) (*DecryptReader, error) {
 
 func (r *EncryptReader) encrypt(plaintext []byte) []byte {
 	ciphertext := make([]byte, (len(plaintext)/16+1)*aes.BlockSize)
+	// выравниваем до размера блока
 	padded := r.pad.Pad(plaintext)
 	blk := cipher.NewCBCEncrypter(r.block, r.iv)
 	blk.CryptBlocks(ciphertext, padded)
@@ -70,6 +73,7 @@ func (r *DecryptReader) decrypt(ciphertext []byte) ([]byte, error) {
 
 func (r *EncryptReader) Read(p []byte) (n int, err error) {
 	src := make([]byte, aes.BlockSize)
+	// читаем из источника не больше одного блока
 	n, err = r.r.Read(src)
 	if err != nil {
 		return
@@ -77,19 +81,23 @@ func (r *EncryptReader) Read(p []byte) (n int, err error) {
 	if r.iv == nil {
 		r.iv = make([]byte, aes.BlockSize)
 	}
+	// шифруем
 	ciphertext := r.encrypt(src[:n])
 
 	n = copy(p, ciphertext)
+	// каждый последующий вектор инициализации должен быть равен последнему блоку зашифрованного текста
 	r.iv = ciphertext[len(ciphertext)-aes.BlockSize:]
 
 	return n, err
 }
 
 func (r *EncryptReader) Close() error {
+	// для реализации io.ReadCloser
 	return nil
 }
 
 func (r *DecryptReader) Read(p []byte) (n int, err error) {
+	// читать будем больше из-за возможного выравнивания
 	src := make([]byte, aes.BlockSize*2)
 	n, err = r.r.Read(src)
 	if err != nil {
