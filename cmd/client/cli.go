@@ -7,6 +7,7 @@ import (
 	"os"
 
 	_ "github.com/alecthomas/kong"
+	"github.com/k1nky/gophkeeper/internal/crypto"
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
 	"github.com/k1nky/gophkeeper/internal/service/keeper"
 )
@@ -36,7 +37,8 @@ func (c *LsCmd) Run(ctx *Context) error {
 
 func (c *PutCmd) Run(ctx *Context) error {
 	line := vault.NewBytesBuffer([]byte(c.Line))
-	data := vault.NewDataReader(line)
+	enc, _ := crypto.NewEncryptReader("secret", line)
+	data := vault.NewDataReader(enc)
 	meta, err := ctx.keeper.PutSecret(ctx.ctx, vault.Meta{}, data)
 	fmt.Println(meta)
 	return err
@@ -52,8 +54,9 @@ func (c *ShCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
+	dec, _ := crypto.NewDecryptReader("secret", data)
 	defer data.Close()
-	_, err = io.Copy(os.Stdout, data)
+	_, err = io.Copy(os.Stdout, dec)
 	return err
 }
 

@@ -6,6 +6,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// ID идентификатор пользователя.
 type ID uint64
 
 //go:generate easyjson user.go
@@ -27,6 +28,29 @@ const (
 	KeyUserClaims contextKey = iota
 )
 
+const (
+	LocalUserID ID = 0
+)
+
+func NewPrivateClaims(u User) PrivateClaims {
+	return PrivateClaims{
+		ID:    u.ID,
+		Login: u.Login,
+	}
+}
+
+// NewContextWithClaims возвращает новый контекст с данным о пользователе.
+func NewContextWithClaims(parent context.Context, claims PrivateClaims) context.Context {
+	return context.WithValue(parent, KeyUserClaims, claims)
+}
+
+// GetEffectiveUser получает пользователя из контекста.
+func GetEffectiveUser(ctx context.Context) (claims PrivateClaims, ok bool) {
+	claims, ok = ctx.Value(KeyUserClaims).(PrivateClaims)
+	return
+}
+
+// HashPassword возвращает хеш пароля password.
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 15)
 	if err != nil {
@@ -44,20 +68,4 @@ func (u *User) IsValid() error {
 		return ErrCredentialsInvalidFormat
 	}
 	return nil
-}
-
-func NewPrivateClaims(u User) PrivateClaims {
-	return PrivateClaims{
-		ID:    u.ID,
-		Login: u.Login,
-	}
-}
-
-func NewContextWithClaims(parent context.Context, claims PrivateClaims) context.Context {
-	return context.WithValue(parent, KeyUserClaims, claims)
-}
-
-func GetEffectiveUser(ctx context.Context) (PrivateClaims, bool) {
-	claims, ok := ctx.Value(KeyUserClaims).(PrivateClaims)
-	return claims, ok
 }

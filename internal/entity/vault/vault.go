@@ -10,12 +10,20 @@ import (
 	"github.com/k1nky/gophkeeper/internal/entity/user"
 )
 
+// BytesBuffer представляет собой bytes.Buffer дополнительно реализующий io.Closer.
+// Удобно использовать для создания DataReader.
 type BytesBuffer struct {
 	bytes.Buffer
 }
 
-func (bb *BytesBuffer) Close() error {
-	return nil
+// DataReader читатель данных из хранилища секретов. Позволяет читать большой объем данных.
+// После использоваения обязательно следует его закрывать. Ответственность за закрытие
+// лежит на потребителе данных, т.е. того, кто их запросил.
+type DataReader struct {
+	// читатель исходных данных, сохраняем его, чтобы была возможность потом закрыть
+	origin io.ReadCloser
+	// буферизированный читатель
+	reader *bufio.Reader
 }
 
 func NewBytesBuffer(p []byte) *BytesBuffer {
@@ -24,16 +32,15 @@ func NewBytesBuffer(p []byte) *BytesBuffer {
 	}
 }
 
-type DataReader struct {
-	origin io.ReadCloser
-	reader *bufio.Reader
-}
-
 func NewDataReader(r io.ReadCloser) *DataReader {
 	return &DataReader{
 		origin: r,
 		reader: bufio.NewReader(r),
 	}
+}
+
+func (bb *BytesBuffer) Close() error {
+	return nil
 }
 
 func (d *DataReader) Read(p []byte) (n int, err error) {

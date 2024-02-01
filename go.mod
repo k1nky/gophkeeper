@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/alecthomas/kong v0.8.1
+	github.com/enceve/crypto v0.0.0-20160707101852-34d48bb93815
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/golang-migrate/migrate/v4 v4.17.0
