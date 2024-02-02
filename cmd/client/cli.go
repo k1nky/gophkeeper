@@ -7,6 +7,7 @@ import (
 	"os"
 
 	_ "github.com/alecthomas/kong"
+	"github.com/k1nky/gophkeeper/internal/adapter/gophkeeper"
 	"github.com/k1nky/gophkeeper/internal/crypto"
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
 	"github.com/k1nky/gophkeeper/internal/service/keeper"
@@ -16,6 +17,7 @@ type Context struct {
 	Debug  bool
 	keeper *keeper.Service
 	ctx    context.Context
+	client *gophkeeper.Adapter
 }
 
 type LsCmd struct{}
@@ -27,6 +29,25 @@ type PutCmd struct {
 
 type ShCmd struct {
 	Id string
+}
+
+type PushCmd struct {
+	Id string
+}
+
+func (c *PushCmd) Run(ctx *Context) error {
+	meta, err := ctx.keeper.GetSecretMeta(ctx.ctx, vault.UniqueKey(c.Id))
+	if err != nil {
+		return err
+	}
+	data, err := ctx.keeper.GetSecretData(ctx.ctx, vault.UniqueKey(c.Id))
+	if err != nil {
+		return err
+	}
+	defer data.Close()
+	m, err := ctx.client.PutSecret(ctx.ctx, *meta, data)
+	fmt.Println(m, err)
+	return err
 }
 
 func (c *LsCmd) Run(ctx *Context) error {
@@ -62,8 +83,9 @@ func (c *ShCmd) Run(ctx *Context) error {
 }
 
 var CLI struct {
-	Debug bool   `help:"Enable debug mode."`
-	Ls    LsCmd  `cmd:"" help:"List secrects."`
-	Put   PutCmd `cmd:"" help:"Put secrect."`
-	Sh    ShCmd  `cmd:"" help:"Show secrect."`
+	Debug bool    `help:"Enable debug mode."`
+	Ls    LsCmd   `cmd:"" help:"List secrects."`
+	Put   PutCmd  `cmd:"" help:"Put secrect."`
+	Push  PushCmd `cmd:"" help:"Push secrect."`
+	Sh    ShCmd   `cmd:"" help:"Show secrect."`
 }

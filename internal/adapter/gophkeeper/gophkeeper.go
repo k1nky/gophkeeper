@@ -43,24 +43,25 @@ func New(endpoint string, path string) *Adapter {
 }
 
 func (a *Adapter) Open(ctx context.Context) error {
-	var retryPolicy = fmt.Sprintf(`{
-		"methodConfig": [{
-			"name": [{"service": ""}],
-			"waitForReady": true,
-			"retryPolicy": {
-				"MaxAttempts": %d,
-				"InitialBackoff": ".01s",
-				"MaxBackoff": ".01s",
-				"BackoffMultiplier": 1.0,
-				"RetryableStatusCodes": [ "UNAVAILABLE" ]
-			}
-		}]
-	}`, MaxAttempts)
+	// var retryPolicy = fmt.Sprintf(`{
+	// 	"methodConfig": [{
+	// 		"name": [{"service": ""}],
+	// 		"waitForReady": true,
+	// 		"retryPolicy": {
+	// 			"MaxAttempts": %d,
+	// 			"InitialBackoff": ".01s",
+	// 			"MaxBackoff": ".01s",
+	// 			"BackoffMultiplier": 1.0,
+	// 			"RetryableStatusCodes": [ "UNAVAILABLE" ]
+	// 		}
+	// 	}]
+	// }`, MaxAttempts)
+	u, _ := url.Parse(a.Endpoint)
 	unaryInterceptors := []grpc.UnaryClientInterceptor{a.AuthorizationUnaryInterceptor()}
 	streamInterceptors := []grpc.StreamClientInterceptor{a.AuthorizationStreamInterceptor()}
-	conn, err := grpc.Dial(a.Endpoint,
+	conn, err := grpc.Dial(fmt.Sprintf(u.Host),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultServiceConfig(retryPolicy),
+		// grpc.WithDefaultServiceConfig(retryPolicy),
 		grpc.WithChainStreamInterceptor(streamInterceptors...),
 		grpc.WithChainUnaryInterceptor(unaryInterceptors...),
 	)

@@ -18,8 +18,20 @@ import (
 	"github.com/k1nky/gophkeeper/internal/service/keeper"
 	"github.com/k1nky/gophkeeper/internal/store/meta/bolt"
 	"github.com/k1nky/gophkeeper/internal/store/objects/filestore"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 )
+
+func newMux(grpcServer *grpc.Server, httpServer http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
+			grpcServer.ServeHTTP(w, r)
+		} else {
+			httpServer.ServeHTTP(w, r)
+		}
+	})
+}
 
 func main() {
 	store := store.New(bolt.New("meta.db"), filestore.New("/tmp/ostore"))
@@ -33,16 +45,8 @@ func main() {
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	store.Open(ctx)
 	srv := &http.Server{
-		Addr: ":8080",
-		Handler: func(grpcServer *grpc.Server, httpServer http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
-					grpcServer.ServeHTTP(w, r)
-				} else {
-					httpServer.ServeHTTP(w, r)
-				}
-			})
-		}(grpcServer, hh),
+		Addr:    ":8080",
+		Handler: h2c.NewHandler(newMux(grpcServer, hh), &http2.Server{}),
 	}
 	srv.ListenAndServe()
 	<-ctx.Done()

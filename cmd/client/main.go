@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kong"
+	"github.com/k1nky/gophkeeper/internal/adapter/gophkeeper"
 	"github.com/k1nky/gophkeeper/internal/adapter/store"
 	"github.com/k1nky/gophkeeper/internal/logger"
 	"github.com/k1nky/gophkeeper/internal/service/keeper"
@@ -23,12 +24,18 @@ func main() {
 	fmt.Println(err)
 	defer store.Close()
 	keeper := keeper.New(store, &logger.Blackhole{})
+	client := gophkeeper.New("http://localhost:8080", "")
+	_, err = client.Login(ctx, "u", "p")
+	fmt.Println(err)
+	err = client.Open(ctx)
+	fmt.Println(err)
 
 	cmd := kong.Parse(&CLI)
 	err = cmd.Run(&Context{
 		Debug:  CLI.Debug,
 		keeper: keeper,
 		ctx:    ctx,
+		client: client,
 	})
 	fmt.Println(err)
 

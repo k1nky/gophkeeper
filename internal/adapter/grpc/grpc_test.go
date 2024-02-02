@@ -1,7 +1,9 @@
 package grpc
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"net"
 	"testing"
 
@@ -87,4 +89,60 @@ func (suite *adapterTestSuite) TestListSecrets() {
 	}
 	suite.NoError(err)
 	suite.Equal(expected, got)
+}
+
+func (suite *adapterTestSuite) TestPutSecret() {
+	ctx := user.NewContextWithClaims(context.Background(), user.PrivateClaims{
+		ID:    1,
+		Login: "u",
+	})
+	conn, err := grpc.DialContext(ctx, "buffer", grpc.WithContextDialer(suite.dial), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		suite.FailNow(err.Error())
+		return
+	}
+	defer conn.Close()
+	client := pb.NewKeeperClient(conn)
+	key := vault.NewUniqueKey()
+	expected := &vault.Meta{
+		UserID: 1,
+		Key:    key,
+		Extra:  "secret owner",
+	}
+	expectedData := bytes.NewBufferString("my secret text")
+	suite.keeper.EXPECT().PutSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(expected, nil)
+	stream, err := client.PutSecret(ctx)
+	suite.NoError(err)
+	defer stream.CloseAndRecv()
+	req := &pb.PutSecretRequest{
+		Data: &pb.PutSecretRequest_Meta{
+			Meta: &pb.Meta{
+				Extra: expected.Extra,
+			},
+		},
+	}
+	err = stream.Send(req)
+	suite.NoError(err)
+	buffer := make([]byte, 1024)
+	for {
+		n, err := expectedData.Read(buffer)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			suite.NoError(err)
+		}
+		req := &pb.PutSecretRequest{
+			Data: &pb.PutSecretRequest_ChunkData{
+				ChunkData: &pb.Data{
+					ChunkData: buffer[:n],
+				},
+			},
+		}
+		stream.Send(req)
+		suite.NoError(err)
+	}
+	resp, err := stream.CloseAndRecv()
+	suite.NoError(err)
+	suite.Equal(expected.Extra, resp.Extra)
 }
