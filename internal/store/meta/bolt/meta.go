@@ -11,32 +11,18 @@ import (
 
 func (bs *BoltStorage) NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, error) {
 	err := bs.DB.Update(func(tx *bolt.Tx) error {
-		// TODO: userid has existed
-		// TODO: uk must be unique
-		b := tx.Bucket(tb("user_meta_list"))
-		uml := make([]vault.UniqueKey, 0)
-		value := b.Get(tb(fmt.Sprintf("%d", m.UserID)))
 
-		if value != nil {
-			if err := deserialize(value, &uml); err != nil {
-				return err
-			}
-		}
-		uml = append(uml, m.Key)
-		if value, err := serialize(uml); err != nil {
-			return err
-		} else {
-			b.Put(tb(fmt.Sprintf("%d", m.UserID)), value)
-		}
-		b, err := tx.CreateBucketIfNotExists(tb("meta"))
+		mb := tx.Bucket(tb("meta"))
+		umb, err := mb.CreateBucketIfNotExists(tb(fmt.Sprintf("%d", m.UserID)))
 		if err != nil {
 			return err
 		}
-		if value, err = serialize(m); err != nil {
+		value, err := serialize(m)
+		if err != nil {
 			return err
 		}
 
-		return b.Put(tb(string(m.Key)), value)
+		return umb.Put(tb(string(m.ID)), value)
 	})
 	if err == nil {
 		return &m, nil
@@ -44,11 +30,16 @@ func (bs *BoltStorage) NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, 
 	return nil, err
 }
 
-func (bs *BoltStorage) GetMeta(ctx context.Context, uk vault.UniqueKey) (*vault.Meta, error) {
+func (bs *BoltStorage) GetMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
 	m := &vault.Meta{}
 	err := bs.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(tb("meta"))
-		value := b.Get([]byte(uk))
+		umb := b.Bucket(tb(fmt.Sprintf("%d", userID)))
+		if umb == nil {
+			m = nil
+			return nil
+		}
+		value := umb.Get([]byte(metaID))
 		if value == nil {
 			m = nil
 			return nil
@@ -67,23 +58,21 @@ func (bs *BoltStorage) GetMeta(ctx context.Context, uk vault.UniqueKey) (*vault.
 func (bs *BoltStorage) ListMetaByUser(ctx context.Context, userID user.ID) (vault.List, error) {
 	list := vault.List{}
 	err := bs.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(tb("user_meta_list"))
-		uml := make([]vault.UniqueKey, 0)
-		value := b.Get(tb(fmt.Sprintf("%d", userID)))
-
-		if value != nil {
-			if err := deserialize(value, &uml); err != nil {
-				return err
-			}
+		b := tx.Bucket(tb("meta"))
+		umb := b.Bucket(tb(fmt.Sprintf("%d", userID)))
+		if umb == nil {
+			return nil
 		}
-		b = tx.Bucket(tb("meta"))
-		for _, uk := range uml {
+
+		c := umb.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
 			m := vault.Meta{}
-			if err := deserialize(b.Get([]byte(uk)), &m); err != nil {
+			if err := deserialize(v, &m); err != nil {
 				return err
 			}
 			list = append(list, m)
 		}
+
 		return nil
 	})
 	if err != nil {

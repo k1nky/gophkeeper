@@ -10,8 +10,8 @@ import (
 //go:generate mockgen -source=contract.go -destination=mock/storage.go -package=mock storage
 type storage interface {
 	PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error)
-	GetSecretData(ctx context.Context, uk vault.UniqueKey) (*vault.DataReader, error)
-	GetSecretMeta(ctx context.Context, uk vault.UniqueKey) (*vault.Meta, error)
+	GetSecretData(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.DataReader, error)
+	GetSecretMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error)
 	ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error)
 }
 

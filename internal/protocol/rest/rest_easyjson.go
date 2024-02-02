@@ -4,6 +4,7 @@ package rest
 
 import (
 	json "encoding/json"
+	_vault "github.com/k1nky/gophkeeper/internal/entity/vault"
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
@@ -109,6 +110,8 @@ func easyjsonDfb66c62DecodeGithubComK1nkyGophkeeperInternalProtocolRest1(in *jle
 			continue
 		}
 		switch key {
+		case "id":
+			out.ID = _vault.MetaID(in.String())
 		case "extra":
 			out.Extra = string(in.String())
 		case "secret":
@@ -128,8 +131,13 @@ func easyjsonDfb66c62EncodeGithubComK1nkyGophkeeperInternalProtocolRest1(out *jw
 	first := true
 	_ = first
 	{
-		const prefix string = ",\"extra\":"
+		const prefix string = ",\"id\":"
 		out.RawString(prefix[1:])
+		out.String(string(in.ID))
+	}
+	{
+		const prefix string = ",\"extra\":"
+		out.RawString(prefix)
 		out.String(string(in.Extra))
 	}
 	{

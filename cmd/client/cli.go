@@ -36,11 +36,11 @@ type PushCmd struct {
 }
 
 func (c *PushCmd) Run(ctx *Context) error {
-	meta, err := ctx.keeper.GetSecretMeta(ctx.ctx, vault.UniqueKey(c.Id))
+	meta, err := ctx.keeper.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))
 	if err != nil {
 		return err
 	}
-	data, err := ctx.keeper.GetSecretData(ctx.ctx, vault.UniqueKey(c.Id))
+	data, err := ctx.keeper.GetSecretData(ctx.ctx, vault.MetaID(c.Id))
 	if err != nil {
 		return err
 	}
@@ -61,18 +61,20 @@ func (c *PutCmd) Run(ctx *Context) error {
 	// TODO: вектор инициализации можно хранить в мета-данных
 	enc, _ := crypto.NewEncryptReader("secret", line, nil)
 	data := vault.NewDataReader(enc)
-	meta, err := ctx.keeper.PutSecret(ctx.ctx, vault.Meta{}, data)
+	meta, err := ctx.keeper.PutSecret(ctx.ctx, vault.Meta{
+		ID: vault.NewMetaID(),
+	}, data)
 	fmt.Println(meta)
 	return err
 }
 
 func (c *ShCmd) Run(ctx *Context) error {
-	meta, err := ctx.keeper.GetSecretMeta(ctx.ctx, vault.UniqueKey(c.Id))
+	meta, err := ctx.keeper.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))
 	if err != nil {
 		return err
 	}
 	fmt.Println(meta)
-	data, err := ctx.keeper.GetSecretData(ctx.ctx, vault.UniqueKey(c.Id))
+	data, err := ctx.keeper.GetSecretData(ctx.ctx, vault.MetaID(c.Id))
 	if err != nil {
 		return err
 	}

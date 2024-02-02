@@ -120,6 +120,7 @@ func (suite *adapterTestSuite) TestGetUserByLoginWithError() {
 func (suite *adapterTestSuite) TestPutSecret() {
 	ctx := context.TODO()
 	m := vault.Meta{
+		ID:     vault.NewMetaID(),
 		UserID: 1,
 		Extra:  "extra data",
 	}
@@ -130,19 +131,18 @@ func (suite *adapterTestSuite) TestPutSecret() {
 
 	newMeta, err := suite.a.PutSecret(ctx, m, d)
 	suite.Assert().NoError(err)
-	m.Key = newMeta.Key
 	suite.Assert().Equal(m, *newMeta)
 }
 
 func (suite *adapterTestSuite) TestGetSecretMeta() {
 	ctx := context.TODO()
 	m := vault.Meta{
-		Key:    vault.NewUniqueKey(),
+		ID:     vault.NewMetaID(),
 		UserID: 1,
 		Extra:  "extra data",
 	}
-	suite.mstore.EXPECT().GetMeta(gomock.Any(), gomock.Any()).Return(&m, nil)
-	got, err := suite.a.GetSecretMeta(ctx, m.Key)
+	suite.mstore.EXPECT().GetMeta(gomock.Any(), gomock.Any(), gomock.Any()).Return(&m, nil)
+	got, err := suite.a.GetSecretMeta(ctx, m.ID, 1)
 	suite.Assert().NoError(err)
 	suite.Assert().Equal(m, *got)
 }
@@ -150,11 +150,11 @@ func (suite *adapterTestSuite) TestGetSecretMeta() {
 func (suite *adapterTestSuite) TestGetSecretData() {
 	ctx := context.TODO()
 	var expected = []byte("some super secret")
-	uk := vault.NewUniqueKey()
+	metaID := vault.NewMetaID()
 
 	suite.ostore.EXPECT().Get(gomock.Any(), gomock.Any()).Return(vault.NewDataReader(vault.NewBytesBuffer(expected)), nil)
 
-	reader, err := suite.a.GetSecretData(ctx, uk)
+	reader, err := suite.a.GetSecretData(ctx, metaID, 0)
 	suite.Assert().NoError(err)
 	got := bytes.NewBuffer(nil)
 	_, err = got.ReadFrom(reader)

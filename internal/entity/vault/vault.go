@@ -55,20 +55,20 @@ func (d *DataReader) Close() error {
 	return d.origin.Close()
 }
 
-type UniqueKey string
+type MetaID string
 
 type Meta struct {
 	UserID user.ID
-	Key    UniqueKey
+	ID     MetaID
 	Extra  string
 }
 
 type List []Meta
 
-func NewUniqueKey() UniqueKey {
+func NewMetaID() MetaID {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return ""
 	}
-	return UniqueKey(hex.EncodeToString(b))
+	return MetaID(hex.EncodeToString(b))
 }

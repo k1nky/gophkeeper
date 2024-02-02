@@ -145,18 +145,18 @@ func (mr *MockMetaStoreMockRecorder) Close() *gomock.Call {
 }
 
 // GetMeta mocks base method.
-func (m *MockMetaStore) GetMeta(ctx context.Context, uk vault.UniqueKey) (*vault.Meta, error) {
+func (m *MockMetaStore) GetMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMeta", ctx, uk)
+	ret := m.ctrl.Call(m, "GetMeta", ctx, metaID, userID)
 	ret0, _ := ret[0].(*vault.Meta)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetMeta indicates an expected call of GetMeta.
-func (mr *MockMetaStoreMockRecorder) GetMeta(ctx, uk interface{}) *gomock.Call {
+func (mr *MockMetaStoreMockRecorder) GetMeta(ctx, metaID, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeta", reflect.TypeOf((*MockMetaStore)(nil).GetMeta), ctx, uk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeta", reflect.TypeOf((*MockMetaStore)(nil).GetMeta), ctx, metaID, userID)
 }
 
 // GetUserByLogin mocks base method.
@@ -175,18 +175,18 @@ func (mr *MockMetaStoreMockRecorder) GetUserByLogin(ctx, login interface{}) *gom
 }
 
 // ListMetaByUser mocks base method.
-func (m *MockMetaStore) ListMetaByUser(ctx context.Context, id user.ID) (vault.List, error) {
+func (m *MockMetaStore) ListMetaByUser(ctx context.Context, userID user.ID) (vault.List, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListMetaByUser", ctx, id)
+	ret := m.ctrl.Call(m, "ListMetaByUser", ctx, userID)
 	ret0, _ := ret[0].(vault.List)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListMetaByUser indicates an expected call of ListMetaByUser.
-func (mr *MockMetaStoreMockRecorder) ListMetaByUser(ctx, id interface{}) *gomock.Call {
+func (mr *MockMetaStoreMockRecorder) ListMetaByUser(ctx, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMetaByUser", reflect.TypeOf((*MockMetaStore)(nil).ListMetaByUser), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMetaByUser", reflect.TypeOf((*MockMetaStore)(nil).ListMetaByUser), ctx, userID)
 }
 
 // NewMeta mocks base method.
@@ -271,33 +271,33 @@ func (mr *MockStoreMockRecorder) Close() *gomock.Call {
 }
 
 // GetSecretData mocks base method.
-func (m *MockStore) GetSecretData(ctx context.Context, uk vault.UniqueKey) (*vault.DataReader, error) {
+func (m *MockStore) GetSecretData(ctx context.Context, metaID vault.MetaID) (*vault.DataReader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretData", ctx, uk)
+	ret := m.ctrl.Call(m, "GetSecretData", ctx, metaID)
 	ret0, _ := ret[0].(*vault.DataReader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecretData indicates an expected call of GetSecretData.
-func (mr *MockStoreMockRecorder) GetSecretData(ctx, uk interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetSecretData(ctx, metaID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockStore)(nil).GetSecretData), ctx, uk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockStore)(nil).GetSecretData), ctx, metaID)
 }
 
 // GetSecretMeta mocks base method.
-func (m *MockStore) GetSecretMeta(ctx context.Context, uk vault.UniqueKey) (*vault.Meta, error) {
+func (m *MockStore) GetSecretMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretMeta", ctx, uk)
+	ret := m.ctrl.Call(m, "GetSecretMeta", ctx, metaID, userID)
 	ret0, _ := ret[0].(*vault.Meta)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecretMeta indicates an expected call of GetSecretMeta.
-func (mr *MockStoreMockRecorder) GetSecretMeta(ctx, uk interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetSecretMeta(ctx, metaID, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretMeta", reflect.TypeOf((*MockStore)(nil).GetSecretMeta), ctx, uk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretMeta", reflect.TypeOf((*MockStore)(nil).GetSecretMeta), ctx, metaID, userID)
 }
 
 // GetUserByLogin mocks base method.

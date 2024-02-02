@@ -28,11 +28,11 @@ func (suite *metaTestSuite) SetupTest() {
 }
 
 func (suite *metaTestSuite) TestNewMeta() {
-	uk := vault.NewUniqueKey()
+	uk := vault.NewMetaID()
 	m := vault.Meta{
 		UserID: 1,
 		Extra:  "some extra",
-		Key:    uk,
+		ID:     uk,
 	}
 	got, err := suite.bs.NewMeta(context.TODO(), m)
 	suite.Assert().NoError(err)
@@ -40,21 +40,21 @@ func (suite *metaTestSuite) TestNewMeta() {
 }
 
 func (suite *metaTestSuite) TestGetMetaNotExists() {
-	m, err := suite.bs.GetMeta(context.TODO(), vault.UniqueKey("not_exists"))
+	m, err := suite.bs.GetMeta(context.TODO(), vault.MetaID("not_exists"), 0)
 	suite.Assert().NoError(err)
 	suite.Assert().Nil(m)
 }
 
 func (suite *metaTestSuite) TestGetMeta() {
-	uk := vault.NewUniqueKey()
+	id := vault.NewMetaID()
 	m, err := suite.bs.NewMeta(context.TODO(), vault.Meta{
 		UserID: 1,
 		Extra:  "some extra",
-		Key:    uk,
+		ID:     id,
 	})
 	suite.Assert().NoError(err)
 
-	got, err := suite.bs.GetMeta(context.TODO(), uk)
+	got, err := suite.bs.GetMeta(context.TODO(), id, 1)
 	suite.Assert().NoError(err)
 	suite.Assert().Equal(m, got)
 }
@@ -64,12 +64,12 @@ func (suite *metaTestSuite) TestListMetaByUser() {
 		{
 			UserID: 1,
 			Extra:  "some extra",
-			Key:    vault.NewUniqueKey(),
+			ID:     vault.NewMetaID(),
 		},
 		{
 			UserID: 1,
 			Extra:  "some extra #2",
-			Key:    vault.NewUniqueKey(),
+			ID:     vault.NewMetaID(),
 		},
 	}
 	for _, m := range expteced {
@@ -78,7 +78,7 @@ func (suite *metaTestSuite) TestListMetaByUser() {
 
 	}
 	_, err := suite.bs.NewMeta(context.TODO(), vault.Meta{
-		Key:    vault.NewUniqueKey(),
+		ID:     vault.NewMetaID(),
 		UserID: 2,
 		Extra:  "",
 	})

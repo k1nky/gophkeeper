@@ -50,29 +50,30 @@ func (a *Adapter) GetUserByLogin(ctx context.Context, login string) (*user.User,
 }
 
 func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
-	meta.Key = vault.NewUniqueKey()
-	if len(meta.Key) == 0 {
+	if len(meta.ID) == 0 {
 		// TODO: wrap error
 		return nil, fmt.Errorf("internal error")
 	}
-	if err := a.ostore.Put(ctx, string(meta.Key), data); err != nil {
+	key := fmt.Sprintf("%d-%s", meta.UserID, meta.ID)
+	if err := a.ostore.Put(ctx, key, data); err != nil {
 		// TODO: wrap error
 		return nil, err
 	}
 	if _, err := a.mstore.NewMeta(ctx, meta); err != nil {
 		// TODO: wrap error
-		a.ostore.Delete(ctx, string(meta.Key))
+		a.ostore.Delete(ctx, key)
 		return nil, err
 	}
 	return &meta, nil
 }
 
-func (a *Adapter) GetSecretData(ctx context.Context, uk vault.UniqueKey) (*vault.DataReader, error) {
-	return a.ostore.Get(ctx, string(uk))
+func (a *Adapter) GetSecretData(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.DataReader, error) {
+	key := fmt.Sprintf("%d-%s", userID, metaID)
+	return a.ostore.Get(ctx, key)
 }
 
-func (a *Adapter) GetSecretMeta(ctx context.Context, uk vault.UniqueKey) (*vault.Meta, error) {
-	m, err := a.mstore.GetMeta(ctx, uk)
+func (a *Adapter) GetSecretMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
+	m, err := a.mstore.GetMeta(ctx, metaID, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -27,7 +27,7 @@ func (bs *BoltStorage) Open(ctx context.Context) (err error) {
 		return
 	}
 	err = bs.DB.Update(func(tx *bolt.Tx) error {
-		for _, bucket := range []string{"users", "user_meta_list", "meta"} {
+		for _, bucket := range []string{"users", "meta"} {
 			if _, err := tx.CreateBucketIfNotExists(tb(bucket)); err != nil {
 				return err
 			}

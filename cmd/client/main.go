@@ -19,7 +19,7 @@ import (
 func main() {
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
-	store := store.New(bolt.New("meta.db"), filestore.New("/tmp/ostore2"))
+	store := store.New(bolt.New("/tmp/client-meta.db"), filestore.New("/tmp/client-vault"))
 	err := store.Open(ctx)
 	fmt.Println(err)
 	defer store.Close()

@@ -34,7 +34,7 @@ func newMux(grpcServer *grpc.Server, httpServer http.Handler) http.Handler {
 }
 
 func main() {
-	store := store.New(bolt.New("meta.db"), filestore.New("/tmp/ostore"))
+	store := store.New(bolt.New("/tmp/server-meta.db"), filestore.New("/tmp/server-vault"))
 	auth := auth.New("secret", time.Hour*175200, store, &logger.Blackhole{})
 	keeper := keeper.New(store, &logger.Blackhole{})
 	hh := httphandler.New(auth, keeper, &logger.Blackhole{})

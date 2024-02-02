@@ -72,7 +72,7 @@ func (suite *adapterTestSuite) TestListSecrets() {
 	expected := vault.List{
 		{
 			UserID: 1,
-			Key:    vault.NewUniqueKey(),
+			ID:     vault.NewMetaID(),
 			Extra:  "extra data",
 		},
 	}
@@ -84,7 +84,7 @@ func (suite *adapterTestSuite) TestListSecrets() {
 	got := vault.List{}
 	for _, v := range resp.Meta {
 		got = append(got, vault.Meta{
-			UserID: 1, Key: vault.UniqueKey(v.Id), Extra: v.Extra,
+			UserID: 1, ID: vault.MetaID(v.Id), Extra: v.Extra,
 		})
 	}
 	suite.NoError(err)
@@ -103,10 +103,10 @@ func (suite *adapterTestSuite) TestPutSecret() {
 	}
 	defer conn.Close()
 	client := pb.NewKeeperClient(conn)
-	key := vault.NewUniqueKey()
+	key := vault.NewMetaID()
 	expected := &vault.Meta{
 		UserID: 1,
-		Key:    key,
+		ID:     key,
 		Extra:  "secret owner",
 	}
 	expectedData := bytes.NewBufferString("my secret text")

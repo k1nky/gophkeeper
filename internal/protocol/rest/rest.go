@@ -1,10 +1,13 @@
 package rest
 
+import "github.com/k1nky/gophkeeper/internal/entity/vault"
+
 //go:generate easyjson rest.go
 //easyjson:json
 type NewSecretRequest struct {
-	Extra  string `json:"extra"`
-	Secret string `json:"secret"`
+	ID     vault.MetaID `json:"id"`
+	Extra  string       `json:"extra"`
+	Secret string       `json:"secret"`
 }
 
 //go:generate easyjson rest.go

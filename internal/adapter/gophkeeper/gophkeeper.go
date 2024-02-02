@@ -113,13 +113,13 @@ func (a *Adapter) ListSecrets(ctx context.Context) (vault.List, error) {
 	for _, v := range resp.Meta {
 		list = append(list, vault.Meta{
 			Extra: v.Extra,
-			Key:   vault.UniqueKey(v.Id),
+			ID:    vault.MetaID(v.Id),
 		})
 	}
 	return list, nil
 }
 
-func (a *Adapter) GetSecretMeta(ctx context.Context, id vault.UniqueKey) (*vault.Meta, error) {
+func (a *Adapter) GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Meta, error) {
 	cli := pb.NewKeeperClient(a.cc)
 	meta, err := cli.GetSecretMeta(ctx, &pb.GetSecretRequest{
 		Key: string(id),
@@ -128,12 +128,12 @@ func (a *Adapter) GetSecretMeta(ctx context.Context, id vault.UniqueKey) (*vault
 		return nil, err
 	}
 	return &vault.Meta{
-		Key:   vault.UniqueKey(meta.Id),
+		ID:    vault.MetaID(meta.Id),
 		Extra: meta.Extra,
 	}, nil
 }
 
-func (a *Adapter) GetSecretData(ctx context.Context, id vault.UniqueKey, w io.Writer) error {
+func (a *Adapter) GetSecretData(ctx context.Context, id vault.MetaID, w io.Writer) error {
 	cli := pb.NewKeeperClient(a.cc)
 	stream, err := cli.GetSecretData(ctx, &pb.GetSecretRequest{
 		Key: string(id),
@@ -201,7 +201,7 @@ func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, r io.Reader) (
 		return nil, err
 	}
 	return &vault.Meta{
-		Key:   vault.UniqueKey(resp.Id),
+		ID:    vault.MetaID(resp.Id),
 		Extra: resp.Extra,
 	}, nil
 }

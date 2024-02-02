@@ -13,7 +13,7 @@ import (
 
 func (a *Adapter) GetSecretMeta(w http.ResponseWriter, r *http.Request) {
 	uk := chi.URLParam(r, "id")
-	secret, err := a.keeper.GetSecretMeta(r.Context(), vault.UniqueKey(uk))
+	secret, err := a.keeper.GetSecretMeta(r.Context(), vault.MetaID(uk))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -31,7 +31,7 @@ func (a *Adapter) GetSecretMeta(w http.ResponseWriter, r *http.Request) {
 
 func (a *Adapter) GetSecretData(w http.ResponseWriter, r *http.Request) {
 	uk := chi.URLParam(r, "id")
-	data, err := a.keeper.GetSecretData(r.Context(), vault.UniqueKey(uk))
+	data, err := a.keeper.GetSecretData(r.Context(), vault.MetaID(uk))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -59,6 +59,7 @@ func (a *Adapter) PutSecret(w http.ResponseWriter, r *http.Request) {
 	meta := vault.Meta{
 		UserID: claims.ID,
 		Extra:  request.Extra,
+		ID:     request.ID,
 	}
 	data := vault.NewDataReader(vault.NewBytesBuffer([]byte(request.Secret)))
 	newMeta, err := a.keeper.PutSecret(r.Context(), meta, data)

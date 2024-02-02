@@ -25,18 +25,18 @@ func New(auth authService, keeper keeperService) *Adapter {
 }
 
 func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretRequest) (*pb.Meta, error) {
-	m, err := a.keeper.GetSecretMeta(ctx, vault.UniqueKey(in.Key))
+	m, err := a.keeper.GetSecretMeta(ctx, vault.MetaID(in.Key))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &pb.Meta{
-		Id:    string(m.Key),
+		Id:    string(m.ID),
 		Extra: m.Extra,
 	}, nil
 }
 
 func (a *Adapter) GetSecretData(in *pb.GetSecretRequest, stream pb.Keeper_GetSecretDataServer) error {
-	reader, err := a.keeper.GetSecretData(stream.Context(), vault.UniqueKey(in.Key))
+	reader, err := a.keeper.GetSecretData(stream.Context(), vault.MetaID(in.Key))
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
@@ -68,6 +68,7 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 	}
 	claims, _ := user.GetEffectiveUser(stream.Context())
 	meta := vault.Meta{
+		ID:     vault.MetaID(req.GetMeta().Id),
 		UserID: claims.ID,
 		Extra:  req.GetMeta().Extra,
 	}
@@ -89,7 +90,7 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 		return status.Error(codes.Unknown, "")
 	}
 	return stream.SendAndClose(&pb.Meta{
-		Id:    string(m.Key),
+		Id:    string(m.ID),
 		Extra: m.Extra,
 	})
 }
@@ -102,7 +103,7 @@ func (a *Adapter) ListSecrets(ctx context.Context, in *pb.ListSecretRequest) (*p
 	list := &pb.ListSecretResponse{}
 	for _, v := range secrets {
 		list.Meta = append(list.Meta, &pb.Meta{
-			Id:    string(v.Key),
+			Id:    string(v.ID),
 			Extra: v.Extra,
 		})
 	}

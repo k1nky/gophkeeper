@@ -22,13 +22,13 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 	for _, v := range list {
-		meta, err := s.client.GetSecretMeta(ctx, v.Key)
+		meta, err := s.client.GetSecretMeta(ctx, v.ID)
 		if err != nil {
 			return err
 		}
 		r, w := io.Pipe()
 		data := vault.NewDataReader(r)
-		s.client.GetSecretData(ctx, v.Key, w)
+		s.client.GetSecretData(ctx, v.ID, w)
 		s.storage.PutSecret(ctx, *meta, data)
 	}
 	return nil
