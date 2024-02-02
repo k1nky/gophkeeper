@@ -37,7 +37,8 @@ func (c *LsCmd) Run(ctx *Context) error {
 
 func (c *PutCmd) Run(ctx *Context) error {
 	line := vault.NewBytesBuffer([]byte(c.Line))
-	enc, _ := crypto.NewEncryptReader("secret", line)
+	// TODO: вектор инициализации можно хранить в мета-данных
+	enc, _ := crypto.NewEncryptReader("secret", line, nil)
 	data := vault.NewDataReader(enc)
 	meta, err := ctx.keeper.PutSecret(ctx.ctx, vault.Meta{}, data)
 	fmt.Println(meta)
@@ -54,7 +55,7 @@ func (c *ShCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	dec, _ := crypto.NewDecryptReader("secret", data)
+	dec, _ := crypto.NewDecryptReader("secret", data, nil)
 	defer data.Close()
 	_, err = io.Copy(os.Stdout, dec)
 	return err

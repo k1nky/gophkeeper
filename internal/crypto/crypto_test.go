@@ -2,26 +2,39 @@ package crypto
 
 import (
 	"bytes"
-	"crypto/sha256"
+	"crypto/rand"
 	"encoding/hex"
-	"fmt"
-	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestT1(t *testing.T) {
-	buf := bytes.NewBufferString("not such long secret text but very noble and intresting")
-	k := sha256.Sum256([]byte("secret"))
-	fmt.Println(hex.EncodeToString(k[:]))
-	enc, _ := NewEncryptReader("secret", buf)
-	out := bytes.NewBuffer(nil)
-	n, err := out.ReadFrom(enc)
-	os.WriteFile("/tmp/txt.enc", out.Bytes(), 0666)
-	fmt.Println(n, err, out)
-	f, _ := os.ReadFile("/tmp/txt.enc")
-	buf = bytes.NewBuffer(f)
-	dec, _ := NewDecryptReader("secret", buf)
-	out = bytes.NewBuffer(nil)
-	out.ReadFrom(dec)
-	fmt.Println(out.String())
+func generateRandom(size int) []byte {
+	b := make([]byte, size)
+	rand.Read(b)
+	return b
+}
+
+func TestEncrypt(t *testing.T) {
+	cases := []int{1, 10, 100, 300, 512, 1000, 10000, 100000}
+	for _, size := range cases {
+		original := generateRandom(size)
+		key := generateRandom(32)
+
+		enc, err := NewEncryptReader(hex.EncodeToString(key), bytes.NewBuffer(original), nil)
+		assert.NoError(t, err)
+		cipher := bytes.NewBuffer(nil)
+		n, err := cipher.ReadFrom(enc)
+		assert.Greater(t, n, int64(0))
+		assert.NoError(t, err)
+		assert.NotEqual(t, original, cipher.Bytes())
+
+		dec, err := NewDecryptReader(hex.EncodeToString(key), cipher, nil)
+		assert.NoError(t, err)
+		plain := bytes.NewBuffer(nil)
+		n, err = plain.ReadFrom(dec)
+		assert.Greater(t, n, int64(0))
+		assert.NoError(t, err)
+		assert.Equal(t, original, plain.Bytes())
+	}
 }

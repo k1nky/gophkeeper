@@ -1,3 +1,4 @@
+// Пакет crypto содержит читателей для работы с AES-CBC.
 package crypto
 
 import (
@@ -9,6 +10,9 @@ import (
 	"github.com/enceve/crypto/pad"
 )
 
+// EncryptReader читатель для шифрования блока данных алгоритмом AES в режиме CBC из другого читателя.
+// Можно считать как middleware для io.Reader. Реализует интерфейс io.ReadCloser.
+// Результат шифрования аналогичен openssl enc -aes-256-cbc -nosalt -e -out <file> -K "<key>" -iv 0.
 type EncryptReader struct {
 	key   []byte
 	r     io.Reader
@@ -17,6 +21,9 @@ type EncryptReader struct {
 	block cipher.Block
 }
 
+// DecryptReader читатель для расшифровки блока данных алгоритмом AES в режиме CBC из другого читателя.
+// Можно считать как middleware для io.Reader. Реализует интерфейс io.ReadCloser.
+// Результат расшифрования аналогичен openssl enc -aes-256-cbc -nosalt -d -out <file> -K "<key>" -iv 0.
 type DecryptReader struct {
 	key   []byte
 	r     io.Reader
@@ -25,8 +32,9 @@ type DecryptReader struct {
 	block cipher.Block
 }
 
-// совместим openssl enc -aes-256-cbc -nosalt -e -out <file> -K "<key>" -iv 0
-func NewEncryptReader(secret string, r io.Reader) (*EncryptReader, error) {
+// NewEncryptReader возвращет новый EncryptReader с ключом `secret` для исходного читателя открытых данных `r` и вектором инициализации `iv`.
+// Если iv равен nil, то будет использоваться значение 0.
+func NewEncryptReader(secret string, r io.Reader, iv []byte) (*EncryptReader, error) {
 	key := sha256.Sum256([]byte(secret))
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
@@ -37,11 +45,13 @@ func NewEncryptReader(secret string, r io.Reader) (*EncryptReader, error) {
 		key:   key[:],
 		block: block,
 		r:     r,
+		iv:    iv,
 	}, nil
 }
 
-// совместим openssl enc -aes-256-cbc -nosalt -d -out <file> -K "<key>" -iv 0
-func NewDecryptReader(secret string, r io.Reader) (*DecryptReader, error) {
+// NewDecryptReader возвращет новый DecryptReader с ключом `secret` для исходного читателя зашифрованных данных `r` и вектором инициализации `iv`.
+// Если iv равен nil, то будет использоваться значение 0.
+func NewDecryptReader(secret string, r io.Reader, iv []byte) (*DecryptReader, error) {
 	key := sha256.Sum256([]byte(secret))
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
@@ -52,6 +62,7 @@ func NewDecryptReader(secret string, r io.Reader) (*DecryptReader, error) {
 		key:   key[:],
 		block: block,
 		r:     r,
+		iv:    iv,
 	}, nil
 }
 
@@ -71,6 +82,7 @@ func (r *DecryptReader) decrypt(ciphertext []byte) ([]byte, error) {
 	return r.pad.Unpad(plaintext)
 }
 
+// Read читает небольше aes.BlockSize из исходного читателя и шифрует их.
 func (r *EncryptReader) Read(p []byte) (n int, err error) {
 	src := make([]byte, aes.BlockSize)
 	// читаем из источника не больше одного блока
@@ -91,11 +103,12 @@ func (r *EncryptReader) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
+// Close для реализации io.ReadCloser
 func (r *EncryptReader) Close() error {
-	// для реализации io.ReadCloser
 	return nil
 }
 
+// Read читает небольше 2*aes.BlockSize из исходного читателя и расшифровывает их.
 func (r *DecryptReader) Read(p []byte) (n int, err error) {
 	// читать будем больше из-за возможного выравнивания
 	src := make([]byte, aes.BlockSize*2)
@@ -116,6 +129,7 @@ func (r *DecryptReader) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
+// Close для реализации io.ReadCloser
 func (r *DecryptReader) Close() error {
 	return nil
 }
