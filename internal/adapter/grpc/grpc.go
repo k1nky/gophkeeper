@@ -72,6 +72,7 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 		UserID: claims.ID,
 		Extra:  req.GetMeta().Extra,
 	}
+	// TODO: изменить тип буффера
 	buf := vault.NewBytesBuffer(nil)
 	for {
 		req, err := stream.Recv()

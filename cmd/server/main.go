@@ -33,13 +33,22 @@ func newMux(grpcServer *grpc.Server, httpServer http.Handler) http.Handler {
 	})
 }
 
+func newGRPCServer(auth *auth.Service) *grpc.Server {
+	// unaryInterceptors := []grpc.UnaryServerInterceptor{grpcmw.LoggerUnaryInterceptor(l)}
+	// streamInterceptors := []grpc.StreamServerInterceptor{grpcmw.LoggerStreamInterceptor(l)}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{grpchandler.AuthorizationUnaryInterceptor(auth)}
+	streamInterceptors := []grpc.StreamServerInterceptor{grpchandler.AuthorizationStreamInterceptor(auth)}
+	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(unaryInterceptors...), grpc.ChainStreamInterceptor(streamInterceptors...))
+	return srv
+}
+
 func main() {
 	store := store.New(bolt.New("/tmp/server-meta.db"), filestore.New("/tmp/server-vault"))
 	auth := auth.New("secret", time.Hour*175200, store, &logger.Blackhole{})
 	keeper := keeper.New(store, &logger.Blackhole{})
 	hh := httphandler.New(auth, keeper, &logger.Blackhole{})
 	gh := grpchandler.New(auth, keeper)
-	grpcServer := grpc.NewServer()
+	grpcServer := newGRPCServer(auth)
 	pb.RegisterKeeperServer(grpcServer, gh)
 
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

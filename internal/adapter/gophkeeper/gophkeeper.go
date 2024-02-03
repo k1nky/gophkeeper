@@ -169,6 +169,7 @@ func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, r io.Reader) (
 	req := &pb.PutSecretRequest{
 		Data: &pb.PutSecretRequest_Meta{
 			Meta: &pb.Meta{
+				Id:    string(meta.ID),
 				Extra: meta.Extra,
 			},
 		},

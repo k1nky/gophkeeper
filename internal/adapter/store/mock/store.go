@@ -271,18 +271,18 @@ func (mr *MockStoreMockRecorder) Close() *gomock.Call {
 }
 
 // GetSecretData mocks base method.
-func (m *MockStore) GetSecretData(ctx context.Context, metaID vault.MetaID) (*vault.DataReader, error) {
+func (m *MockStore) GetSecretData(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.DataReader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretData", ctx, metaID)
+	ret := m.ctrl.Call(m, "GetSecretData", ctx, metaID, userID)
 	ret0, _ := ret[0].(*vault.DataReader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecretData indicates an expected call of GetSecretData.
-func (mr *MockStoreMockRecorder) GetSecretData(ctx, metaID interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetSecretData(ctx, metaID, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockStore)(nil).GetSecretData), ctx, metaID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockStore)(nil).GetSecretData), ctx, metaID, userID)
 }
 
 // GetSecretMeta mocks base method.

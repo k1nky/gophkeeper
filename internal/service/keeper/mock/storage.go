@@ -37,33 +37,33 @@ func (m *Mockstorage) EXPECT() *MockstorageMockRecorder {
 }
 
 // GetSecretData mocks base method.
-func (m *Mockstorage) GetSecretData(ctx context.Context, uk vault.MetaID) (*vault.DataReader, error) {
+func (m *Mockstorage) GetSecretData(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.DataReader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretData", ctx, uk)
+	ret := m.ctrl.Call(m, "GetSecretData", ctx, metaID, userID)
 	ret0, _ := ret[0].(*vault.DataReader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecretData indicates an expected call of GetSecretData.
-func (mr *MockstorageMockRecorder) GetSecretData(ctx, uk interface{}) *gomock.Call {
+func (mr *MockstorageMockRecorder) GetSecretData(ctx, metaID, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*Mockstorage)(nil).GetSecretData), ctx, uk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*Mockstorage)(nil).GetSecretData), ctx, metaID, userID)
 }
 
 // GetSecretMeta mocks base method.
-func (m *Mockstorage) GetSecretMeta(ctx context.Context, uk vault.MetaID) (*vault.Meta, error) {
+func (m *Mockstorage) GetSecretMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretMeta", ctx, uk)
+	ret := m.ctrl.Call(m, "GetSecretMeta", ctx, metaID, userID)
 	ret0, _ := ret[0].(*vault.Meta)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecretMeta indicates an expected call of GetSecretMeta.
-func (mr *MockstorageMockRecorder) GetSecretMeta(ctx, uk interface{}) *gomock.Call {
+func (mr *MockstorageMockRecorder) GetSecretMeta(ctx, metaID, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretMeta", reflect.TypeOf((*Mockstorage)(nil).GetSecretMeta), ctx, uk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretMeta", reflect.TypeOf((*Mockstorage)(nil).GetSecretMeta), ctx, metaID, userID)
 }
 
 // ListSecretsByUser mocks base method.
