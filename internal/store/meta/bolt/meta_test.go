@@ -39,13 +39,24 @@ func (suite *metaTestSuite) TestNewMeta() {
 	suite.Assert().Equal(m, *got)
 }
 
-func (suite *metaTestSuite) TestGetMetaNotExists() {
-	m, err := suite.bs.GetMeta(context.TODO(), vault.MetaID("not_exists"), 0)
+func (suite *metaTestSuite) TestGetMetaByIDNotExists() {
+	m, err := suite.bs.GetMetaByID(context.TODO(), vault.MetaID("not_exist"), 0)
 	suite.Assert().NoError(err)
 	suite.Assert().Nil(m)
 }
 
-func (suite *metaTestSuite) TestGetMeta() {
+func (suite *metaTestSuite) TestGetMetaByAliasNotExists() {
+	m, err := suite.bs.GetMetaByAlias(context.TODO(), "", 0)
+	suite.Assert().NoError(err)
+	suite.Assert().Nil(m)
+
+	m, err = suite.bs.GetMetaByAlias(context.TODO(), "not_exist", 0)
+	suite.Assert().NoError(err)
+	suite.Assert().Nil(m)
+
+}
+
+func (suite *metaTestSuite) TestGetMetaByID() {
 	id := vault.NewMetaID()
 	m, err := suite.bs.NewMeta(context.TODO(), vault.Meta{
 		UserID: 1,
@@ -53,8 +64,34 @@ func (suite *metaTestSuite) TestGetMeta() {
 		ID:     id,
 	})
 	suite.Assert().NoError(err)
+	suite.bs.NewMeta(context.TODO(), vault.Meta{
+		UserID: 1,
+		Extra:  "some extra#2",
+		ID:     vault.NewMetaID(),
+	})
 
-	got, err := suite.bs.GetMeta(context.TODO(), id, 1)
+	got, err := suite.bs.GetMetaByID(context.TODO(), id, 1)
+	suite.Assert().NoError(err)
+	suite.Assert().Equal(m, got)
+}
+
+func (suite *metaTestSuite) TestGetMetaByAlias() {
+	id := vault.NewMetaID()
+	m, err := suite.bs.NewMeta(context.TODO(), vault.Meta{
+		UserID: 1,
+		Alias:  "alias",
+		Extra:  "some extra",
+		ID:     id,
+	})
+	suite.Assert().NoError(err)
+	suite.bs.NewMeta(context.TODO(), vault.Meta{
+		UserID: 1,
+		Alias:  "alias#2",
+		Extra:  "some extra#2",
+		ID:     vault.NewMetaID(),
+	})
+
+	got, err := suite.bs.GetMetaByAlias(context.TODO(), "alias", 1)
 	suite.Assert().NoError(err)
 	suite.Assert().Equal(m, got)
 }
@@ -85,5 +122,5 @@ func (suite *metaTestSuite) TestListMetaByUser() {
 	suite.Assert().NoError(err)
 	list, err := suite.bs.ListMetaByUser(context.TODO(), 1)
 	suite.Assert().NoError(err)
-	suite.Assert().Equal(expteced, list)
+	suite.Assert().ElementsMatch(expteced, list)
 }

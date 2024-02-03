@@ -30,7 +30,7 @@ func (bs *BoltStorage) NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, 
 	return nil, err
 }
 
-func (bs *BoltStorage) GetMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
+func (bs *BoltStorage) GetMetaByID(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
 	m := &vault.Meta{}
 	err := bs.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(tb("meta"))
@@ -51,6 +51,41 @@ func (bs *BoltStorage) GetMeta(ctx context.Context, metaID vault.MetaID, userID 
 	})
 	if err != nil {
 		return nil, err
+	}
+	return m, err
+}
+
+func (bs *BoltStorage) GetMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error) {
+	if len(alias) == 0 {
+		return nil, nil
+	}
+	m := &vault.Meta{}
+	found := false
+	err := bs.View(func(tx *bolt.Tx) error {
+		mb := tx.Bucket(tb("meta"))
+		umb := mb.Bucket(tb(fmt.Sprintf("%d", userID)))
+		if umb == nil {
+			m = nil
+			return nil
+		}
+
+		c := umb.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			if err := deserialize(v, m); err != nil {
+				return err
+			}
+			if m.Alias == alias {
+				found = true
+				return nil
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, nil
 	}
 	return m, err
 }

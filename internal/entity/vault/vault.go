@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"io"
+	"strings"
 
 	"github.com/k1nky/gophkeeper/internal/entity/user"
 )
@@ -25,6 +27,15 @@ type DataReader struct {
 	// буферизированный читатель, позволяет читать исходные данные через буфер
 	reader *bufio.Reader
 }
+
+type SecretType int
+
+const (
+	Text SecretType = iota
+	LoginPassword
+	CreditCard
+	File
+)
 
 func NewBytesBuffer(p []byte) *BytesBuffer {
 	return &BytesBuffer{
@@ -60,6 +71,8 @@ type MetaID string
 type Meta struct {
 	UserID user.ID
 	ID     MetaID
+	Alias  string
+	Type   SecretType
 	Extra  string
 }
 
@@ -71,4 +84,30 @@ func NewMetaID() MetaID {
 		return ""
 	}
 	return MetaID(hex.EncodeToString(b))
+}
+
+func (t SecretType) String() string {
+	switch t {
+	case Text:
+		return "text"
+	case LoginPassword:
+		return "login-password"
+	case CreditCard:
+		return "credit-card"
+	case File:
+		return "file"
+	}
+	return "unknown"
+}
+
+func (m Meta) String() string {
+	return fmt.Sprintf("%s %s %s", m.ID, m.Alias, m.Type)
+}
+
+func (l List) String() string {
+	s := strings.Builder{}
+	for _, v := range l {
+		s.WriteString(v.String())
+	}
+	return s.String()
 }
