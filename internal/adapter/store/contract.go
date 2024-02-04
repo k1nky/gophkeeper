@@ -22,7 +22,8 @@ type MetaStore interface {
 	Close() error
 	NewUser(ctx context.Context, u user.User) (*user.User, error)
 	NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, error)
-	GetMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error)
+	GetMetaByID(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error)
+	GetMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error)
 	ListMetaByUser(ctx context.Context, userID user.ID) (vault.List, error)
 	Open(ctx context.Context) (err error)
 }
@@ -33,7 +34,8 @@ type Store interface {
 	GetUserByLogin(ctx context.Context, login string) (*user.User, error)
 	PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error)
 	GetSecretData(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.DataReader, error)
-	GetSecretMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error)
+	GetSecretMetaByID(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error)
+	GetSecretMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error)
 	ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error)
 	Close() error
 }

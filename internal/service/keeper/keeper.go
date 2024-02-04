@@ -25,7 +25,7 @@ func (s *Service) GetSecretData(ctx context.Context, metaID vault.MetaID) (*vaul
 	if !ok {
 		// TODO:
 	}
-	meta, err := s.store.GetSecretMeta(ctx, metaID, claims.ID)
+	meta, err := s.store.GetSecretMetaByID(ctx, metaID, claims.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,15 @@ func (s *Service) GetSecretMeta(ctx context.Context, metaID vault.MetaID) (*vaul
 	if !ok {
 		// TODO:
 	}
-	return s.store.GetSecretMeta(ctx, metaID, claims.ID)
+	return s.store.GetSecretMetaByID(ctx, metaID, claims.ID)
+}
+
+func (s *Service) GetSecretMetaByAlias(ctx context.Context, alias string) (*vault.Meta, error) {
+	claims, ok := user.GetEffectiveUser(ctx)
+	if !ok {
+		// TODO:
+	}
+	return s.store.GetSecretMetaByAlias(ctx, alias, claims.ID)
 }
 
 func (s *Service) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {

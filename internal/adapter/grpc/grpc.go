@@ -25,7 +25,7 @@ func New(auth authService, keeper keeperService) *Adapter {
 }
 
 func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretRequest) (*pb.Meta, error) {
-	m, err := a.keeper.GetSecretMeta(ctx, vault.MetaID(in.Key))
+	m, err := a.keeper.GetSecretMeta(ctx, vault.MetaID(in.Id))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -36,7 +36,7 @@ func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretRequest) (*
 }
 
 func (a *Adapter) GetSecretData(in *pb.GetSecretRequest, stream pb.Keeper_GetSecretDataServer) error {
-	reader, err := a.keeper.GetSecretData(stream.Context(), vault.MetaID(in.Key))
+	reader, err := a.keeper.GetSecretData(stream.Context(), vault.MetaID(in.Id))
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
@@ -72,20 +72,24 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 		UserID: claims.ID,
 		Extra:  req.GetMeta().Extra,
 	}
-	// TODO: изменить тип буффера
-	buf := vault.NewBytesBuffer(nil)
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			if err == io.EOF {
-				break
+	r, w := io.Pipe()
+	// TODO: error handling
+	go func() {
+		for {
+			req, err := stream.Recv()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return
+				// return status.Error(codes.Unknown, "")
 			}
-			return status.Error(codes.Unknown, "")
+			chunk := req.GetChunkData().ChunkData
+			w.Write(chunk)
 		}
-		chunk := req.GetChunkData().ChunkData
-		buf.Write(chunk)
-	}
-	data := vault.NewDataReader(buf)
+		w.Close()
+	}()
+	data := vault.NewDataReader(r)
 	m, err := a.keeper.PutSecret(stream.Context(), meta, data)
 	if err != nil {
 		return status.Error(codes.Unknown, "")
@@ -97,7 +101,9 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 }
 
 func (a *Adapter) ListSecrets(ctx context.Context, in *pb.ListSecretRequest) (*pb.ListSecretResponse, error) {
-	secrets, err := a.keeper.ListSecretsByUser(ctx, user.ID(in.UserId))
+	claims, _ := user.GetEffectiveUser(ctx)
+	// TODO: source user id
+	secrets, err := a.keeper.ListSecretsByUser(ctx, claims.ID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

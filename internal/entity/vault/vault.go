@@ -107,7 +107,7 @@ func (m Meta) String() string {
 func (l List) String() string {
 	s := strings.Builder{}
 	for _, v := range l {
-		s.WriteString(v.String())
+		s.WriteString(v.String() + "\n")
 	}
 	return s.String()
 }

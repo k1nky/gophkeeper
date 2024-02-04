@@ -141,8 +141,8 @@ func (suite *adapterTestSuite) TestGetSecretMeta() {
 		UserID: 1,
 		Extra:  "extra data",
 	}
-	suite.mstore.EXPECT().GetMeta(gomock.Any(), gomock.Any(), gomock.Any()).Return(&m, nil)
-	got, err := suite.a.GetSecretMeta(ctx, m.ID, 1)
+	suite.mstore.EXPECT().GetMetaByID(gomock.Any(), gomock.Any(), gomock.Any()).Return(&m, nil)
+	got, err := suite.a.GetSecretMetaByID(ctx, m.ID, 1)
 	suite.Assert().NoError(err)
 	suite.Assert().Equal(m, *got)
 }

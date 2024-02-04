@@ -72,8 +72,19 @@ func (a *Adapter) GetSecretData(ctx context.Context, metaID vault.MetaID, userID
 	return a.ostore.Get(ctx, key)
 }
 
-func (a *Adapter) GetSecretMeta(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
-	m, err := a.mstore.GetMeta(ctx, metaID, userID)
+func (a *Adapter) GetSecretMetaByID(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
+	m, err := a.mstore.GetMetaByID(ctx, metaID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if m == nil {
+		return nil, nil
+	}
+	return m, err
+}
+
+func (a *Adapter) GetSecretMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error) {
+	m, err := a.mstore.GetMetaByAlias(ctx, alias, userID)
 	if err != nil {
 		return nil, err
 	}

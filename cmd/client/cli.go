@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	_ "github.com/alecthomas/kong"
 	"github.com/k1nky/gophkeeper/internal/adapter/gophkeeper"
 	"github.com/k1nky/gophkeeper/internal/crypto"
+	"github.com/k1nky/gophkeeper/internal/entity/user"
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
 	"github.com/k1nky/gophkeeper/internal/service/keeper"
 )
@@ -20,18 +20,27 @@ type Context struct {
 	client *gophkeeper.Adapter
 }
 
-type LsCmd struct{}
+type LsCmd struct {
+	Remote bool
+}
 
 type PutCmd struct {
-	File string `arg:"" optional:"" name:"file" help:"Path to secret file." type:"path"`
-	Line string
+	File  string `arg:"" optional:"" name:"file" help:"Path to secret file." type:"path"`
+	Line  string
+	Alias string
 }
 
 type ShCmd struct {
-	Id string
+	Id    string
+	Alias string
 }
 
 type PushCmd struct {
+	Id    string
+	Alias string
+}
+
+type PullCmd struct {
 	Id string
 }
 
@@ -51,8 +60,16 @@ func (c *PushCmd) Run(ctx *Context) error {
 }
 
 func (c *LsCmd) Run(ctx *Context) error {
-	list, err := ctx.keeper.ListSecretsByUser(ctx.ctx, 0)
-	fmt.Println(list)
+	var (
+		list vault.List
+		err  error
+	)
+	if c.Remote {
+		list, err = ctx.client.ListSecrets(ctx.ctx)
+	} else {
+		list, err = ctx.keeper.ListSecretsByUser(ctx.ctx, user.LocalUserID)
+	}
+	fmt.Println(list.String())
 	return err
 }
 
@@ -62,19 +79,50 @@ func (c *PutCmd) Run(ctx *Context) error {
 	enc, _ := crypto.NewEncryptReader("secret", line, nil)
 	data := vault.NewDataReader(enc)
 	meta, err := ctx.keeper.PutSecret(ctx.ctx, vault.Meta{
-		ID: vault.NewMetaID(),
+		ID:    vault.NewMetaID(),
+		Alias: c.Alias,
 	}, data)
-	fmt.Println(meta)
+	fmt.Println(meta.String())
+	return err
+}
+
+func (c *PullCmd) Run(ctx *Context) error {
+	meta, err := ctx.client.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))
+	if err != nil {
+		return err
+	}
+	r, w := io.Pipe()
+	data := vault.NewDataReader(r)
+	// buf := vault.NewBytesBuffer(nil)
+	go func() {
+		err = ctx.client.GetSecretData(ctx.ctx, vault.MetaID(c.Id), w)
+		w.Close()
+	}()
+	// err = ctx.client.GetSecretData(ctx.ctx, vault.MetaID(c.Id), w)
+	if err != nil {
+		return err
+	}
+	// data := vault.NewDataReader(buf)
+	newMeta, err := ctx.keeper.PutSecret(ctx.ctx, *meta, data)
+	fmt.Println(newMeta.String())
 	return err
 }
 
 func (c *ShCmd) Run(ctx *Context) error {
-	meta, err := ctx.keeper.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))
+	var (
+		meta *vault.Meta
+		err  error
+	)
+	if len(c.Id) != 0 {
+		meta, err = ctx.keeper.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))
+	} else {
+		meta, err = ctx.keeper.GetSecretMetaByAlias(ctx.ctx, c.Alias)
+	}
 	if err != nil {
 		return err
 	}
 	fmt.Println(meta)
-	data, err := ctx.keeper.GetSecretData(ctx.ctx, vault.MetaID(c.Id))
+	data, err := ctx.keeper.GetSecretData(ctx.ctx, vault.MetaID(meta.ID))
 	if err != nil {
 		return err
 	}
@@ -90,4 +138,5 @@ var CLI struct {
 	Put   PutCmd  `cmd:"" help:"Put secrect."`
 	Push  PushCmd `cmd:"" help:"Push secrect."`
 	Sh    ShCmd   `cmd:"" help:"Show secrect."`
+	Pull  PullCmd `cmd:"" help:"Pull secrect."`
 }

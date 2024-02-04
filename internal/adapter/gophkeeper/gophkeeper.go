@@ -122,7 +122,7 @@ func (a *Adapter) ListSecrets(ctx context.Context) (vault.List, error) {
 func (a *Adapter) GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Meta, error) {
 	cli := pb.NewKeeperClient(a.cc)
 	meta, err := cli.GetSecretMeta(ctx, &pb.GetSecretRequest{
-		Key: string(id),
+		Id: string(id),
 	})
 	if err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ func (a *Adapter) GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Me
 func (a *Adapter) GetSecretData(ctx context.Context, id vault.MetaID, w io.Writer) error {
 	cli := pb.NewKeeperClient(a.cc)
 	stream, err := cli.GetSecretData(ctx, &pb.GetSecretRequest{
-		Key: string(id),
+		Id: string(id),
 	})
 	if err != nil {
 		return err
