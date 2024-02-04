@@ -7,6 +7,7 @@ import (
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
 )
 
+// TODO: Access model
 type Service struct {
 	store storage
 	log   logger
@@ -32,9 +33,6 @@ func (s *Service) GetSecretData(ctx context.Context, metaID vault.MetaID) (*vaul
 	}
 	if meta == nil {
 		return nil, nil
-	}
-	if meta.UserID != claims.ID {
-		return nil, user.ErrUnathorized
 	}
 
 	return s.store.GetSecretData(ctx, metaID, claims.ID)
