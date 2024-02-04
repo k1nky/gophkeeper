@@ -14,15 +14,10 @@ import (
 )
 
 type Context struct {
-	Debug       bool   `optional:"" name:"debug" env:"DEBUG"`
-	RemoteVault string `optional:"" name:"remote-vault" env:"REMOTE_VAULT"`
-	LocalVault  string `optional:"" name:"local-vault" env:"LOCAL_VAULT"`
-	User        string `optional:"" name:"user" env:"user"`
-	Password    string `optional:"" name:"password" env:"password"`
-	keeper      *keeper.Service
-	ctx         context.Context
-	sync        *sync.Service
-	client      *gophkeeper.Adapter
+	keeper *keeper.Service
+	ctx    context.Context
+	sync   *sync.Service
+	client *gophkeeper.Adapter
 }
 
 type LsCmd struct {
@@ -30,32 +25,40 @@ type LsCmd struct {
 }
 
 type PutCmd struct {
-	File  string `arg:"" optional:"" name:"file" help:"Path to file with the secret to be placed in local storage." type:"path"`
-	Text  string `arg:"" optional:"" name:"text" help:"Secret text to save in local storage."`
-	Alias string `arg:"" optinal:"" name:"alias" help:"Secret entry alias."`
+	File  string `optional:"" name:"file" help:"Path to file with the secret to be placed in local storage." type:"path"`
+	Text  string `optional:"" name:"text" help:"Secret text to save in local storage."`
+	Alias string `optional:"" name:"alias" help:"Secret entry alias."`
 }
 
 type ShCmd struct {
-	Id    string `arg:"" optinal:"" name:"alias" help:"Secret entry ID to show."`
-	Alias string `arg:"" optinal:"" name:"alias" help:"Secret entry alias to show."`
+	Id    string `optional:"" name:"id" help:"Secret entry ID to show."`
+	Alias string `optional:"" name:"alias" help:"Secret entry alias to show."`
 }
 
 type PushCmd struct {
-	Id    string `arg:"" optinal:"" name:"alias" help:"Secret entry ID to push."`
-	Alias string `arg:"" optinal:"" name:"alias" help:"Secret entry alias to push."`
+	Id    string `optional:"" name:"id" help:"Secret entry ID to push."`
+	Alias string `optional:"" name:"alias" help:"Secret entry alias to push."`
 }
 
 type PullCmd struct {
-	Id string `arg:"" optinal:"" name:"alias" help:"Secret entry ID to pull."`
+	Id string `optional:"" name:"id" help:"Secret entry ID to pull."`
 }
 
-var CLI struct {
-	Debug bool    `help:"Enable debug mode."`
-	Ls    LsCmd   `cmd:"" help:"List secrects from local or remote storage."`
-	Put   PutCmd  `cmd:"" help:"Put secrect to local storage."`
-	Push  PushCmd `cmd:"" help:"Push secrect to remote storage."`
-	Sh    ShCmd   `cmd:"" help:"Show secrect from local storage."`
-	Pull  PullCmd `cmd:"" help:"Pull secrect from remote storage."`
+type remoteVaultFlag string
+
+var cli struct {
+	Debug          bool            `optional:"" name:"debug" env:"DEBUG" help:"Enable debug mode."`
+	RemoteVault    remoteVaultFlag `optional:"" name:"remote-vault" env:"REMOTE_VAULT"`
+	MetaStoreDSN   string          `optional:"" name:"meta-store-dsn" env:"META_STORE_DSN" default:"/tmp/client-meta.db"`
+	ObjectStoreDSN string          `optional:"" name:"object-store-dsn" env:"OBJECT_STORE_DSN" default:"/tmp/client-vault"`
+	User           string          `optional:"" name:"remote-user" env:"REMOTE_VAULT_USER"`
+	Password       string          `optional:"" name:"remote-password" env:"REMOTE_VAULT_PASSWORD"`
+	Secret         string          `optional:"" name:"secret" env:"VAULT_SECRET"`
+	Ls             LsCmd           `cmd:"" help:"List secrects from local or remote storage."`
+	Put            PutCmd          `cmd:"" help:"Put secrect to local storage."`
+	Push           PushCmd         `cmd:"" help:"Push secrect to remote storage."`
+	Sh             ShCmd           `cmd:"" help:"Show secrect from local storage."`
+	Pull           PullCmd         `cmd:"" help:"Pull secrect from remote storage."`
 }
 
 func (c *PushCmd) Run(ctx *Context) error {

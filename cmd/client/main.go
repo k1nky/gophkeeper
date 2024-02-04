@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,6 +9,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/k1nky/gophkeeper/internal/adapter/gophkeeper"
 	"github.com/k1nky/gophkeeper/internal/adapter/store"
+	"github.com/k1nky/gophkeeper/internal/entity/user"
 	"github.com/k1nky/gophkeeper/internal/logger"
 	"github.com/k1nky/gophkeeper/internal/service/keeper"
 	"github.com/k1nky/gophkeeper/internal/service/sync"
@@ -17,42 +17,56 @@ import (
 	"github.com/k1nky/gophkeeper/internal/store/objects/filestore"
 )
 
+func newClient(ctx context.Context, url string, u user.User, l *logger.Logger) (*gophkeeper.Adapter, error) {
+	if len(url) == 0 {
+		return nil, nil
+	}
+	client := gophkeeper.New(url, "")
+	if cur, err := client.Login(ctx, u.Login, u.Password); err != nil {
+		return nil, err
+	} else {
+		l.Debugf("log on as %s", cur.Login)
+	}
+	if err := client.Open(ctx); err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
 func main() {
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
-	store := store.New(bolt.New("/tmp/client-meta.db"), filestore.New("/tmp/client-vault"))
-	err := store.Open(ctx)
-	fmt.Println(err)
-	defer store.Close()
-	keeper := keeper.New(store, &logger.Blackhole{})
-	client := gophkeeper.New("http://localhost:8080", "")
-	sync := sync.New(client, keeper)
-	_, err = client.Login(ctx, "u", "p")
-	fmt.Println(err)
-	err = client.Open(ctx)
-	fmt.Println(err)
+	log := logger.New()
 
-	cmd := kong.Parse(&CLI)
-	err = cmd.Run(&Context{
-		Debug:  CLI.Debug,
+	cmd := kong.Parse(&cli)
+	if cli.Debug {
+		log.SetLevel("debug")
+	}
+	client, err := newClient(ctx, string(cli.RemoteVault), user.User{
+		Login:    cli.User,
+		Password: cli.Password,
+	}, log)
+	if err != nil {
+		log.Errorf("connect to %s: %v", cli.RemoteVault, err)
+		os.Exit(1)
+	}
+	store := store.New(bolt.New(cli.MetaStoreDSN), filestore.New(cli.ObjectStoreDSN))
+	if err := store.Open(ctx); err != nil {
+		log.Errorf("store: %v", err)
+		os.Exit(1)
+	}
+	defer store.Close()
+	keeper := keeper.New(store, log)
+	sync := sync.New(client, keeper)
+
+	if err = cmd.Run(&Context{
 		keeper: keeper,
 		ctx:    ctx,
 		client: client,
 		sync:   sync,
-	})
-	fmt.Println(err)
-
-	// store := store.New(bolt.New("meta.db"), filestore.New("/tmp/ostore2"))
-	// keeper := keeper.New(store, &logger.Blackhole{})
-	// client := gophkeeper.New("http://localhost:8080", "/")
-	// client.Open(ctx)
-	// claims, err := client.Login(ctx, "u", "p")
-	// fmt.Println(claims, err)
-	// list, err := client.ListSecrets(ctx)
-	// fmt.Println(list, err)
-	// data := vault.NewBytesBuffer([]byte("Hit the lights"))
-	// meta, err := client.PutSecret(ctx, vault.Meta{Extra: "first test secret"}, data)
-	// fmt.Println(meta, err)
+	}); err != nil {
+		log.Errorf("command: %s", err)
+	}
 
 	// <-ctx.Done()
 }

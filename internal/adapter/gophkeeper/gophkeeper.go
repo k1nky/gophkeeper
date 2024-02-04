@@ -131,6 +131,7 @@ func (a *Adapter) GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Me
 	}
 	return &vault.Meta{
 		ID:    vault.MetaID(meta.Id),
+		Alias: meta.Alias,
 		Extra: meta.Extra,
 	}, nil
 }
@@ -147,6 +148,7 @@ func (a *Adapter) GetSecretMetaByAlias(ctx context.Context, alias string) (*vaul
 	}
 	return &vault.Meta{
 		ID:    vault.MetaID(meta.Id),
+		Alias: meta.Alias,
 		Extra: meta.Extra,
 	}, nil
 }
@@ -221,6 +223,7 @@ func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, r io.Reader) (
 	}
 	return &vault.Meta{
 		ID:    vault.MetaID(resp.Id),
+		Alias: resp.Alias,
 		Extra: resp.Extra,
 	}, nil
 }
