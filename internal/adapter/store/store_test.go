@@ -45,6 +45,7 @@ func (suite *adapterTestSuite) TestOpenWithError() {
 	ctx := context.TODO()
 
 	suite.mstore.EXPECT().Close().Return(nil)
+	suite.ostore.EXPECT().Close().Return(nil)
 	suite.ostore.EXPECT().Open(ctx).Return(errors.New("could not open"))
 	suite.mstore.EXPECT().Open(ctx).Return(nil)
 

@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 
 	"github.com/k1nky/gophkeeper/internal/entity/user"
@@ -12,22 +14,42 @@ import (
 )
 
 type Adapter struct {
+	// UnimplementedKeeperServer must be embedded to have forward compatible implementations.
 	pb.UnimplementedKeeperServer
 	auth   authService
 	keeper keeperService
+	log    logger
 }
 
-func New(auth authService, keeper keeperService) *Adapter {
+var (
+	ErrUnexpected = errors.New("unexpected error")
+)
+
+func New(auth authService, keeper keeperService, log logger) *Adapter {
 	return &Adapter{
 		auth:   auth,
 		keeper: keeper,
+		log:    log,
 	}
 }
 
-func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretRequest) (*pb.Meta, error) {
-	m, err := a.keeper.GetSecretMeta(ctx, vault.MetaID(in.Id))
+func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretMetaRequest) (*pb.Meta, error) {
+	var (
+		m   *vault.Meta
+		err error
+	)
+	switch key := in.Key.(type) {
+	case *pb.GetSecretMetaRequest_Alias:
+		m, err = a.keeper.GetSecretMetaByAlias(ctx, key.Alias)
+	case *pb.GetSecretMetaRequest_Id:
+		m, err = a.keeper.GetSecretMeta(ctx, vault.MetaID(key.Id))
+	}
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		a.log.Errorf("grpc: GetSecretMeta: %v", err)
+		return nil, status.Error(codes.Internal, ErrUnexpected.Error())
+	}
+	if m == nil {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("[%s] not found", in.Key))
 	}
 	return &pb.Meta{
 		Id:    string(m.ID),
@@ -35,12 +57,14 @@ func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretRequest) (*
 	}, nil
 }
 
-func (a *Adapter) GetSecretData(in *pb.GetSecretRequest, stream pb.Keeper_GetSecretDataServer) error {
+func (a *Adapter) GetSecretData(in *pb.GetSecretDataRequest, stream pb.Keeper_GetSecretDataServer) error {
 	reader, err := a.keeper.GetSecretData(stream.Context(), vault.MetaID(in.Id))
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		a.log.Errorf("grpc: GetSecretData: %v", err)
+		return status.Error(codes.Internal, ErrUnexpected.Error())
 	}
 	defer reader.Close()
+
 	buffer := make([]byte, 1024)
 	for {
 		n, err := reader.Read(buffer)
@@ -48,13 +72,15 @@ func (a *Adapter) GetSecretData(in *pb.GetSecretRequest, stream pb.Keeper_GetSec
 			if err == io.EOF {
 				break
 			}
-			return status.Error(codes.Unknown, "")
+			a.log.Errorf("grpc: GetSecretData: reading data %v", err)
+			return status.Error(codes.Unknown, "reading data")
 		}
 		chunk := &pb.Data{
 			ChunkData: buffer[:n],
 		}
 		if err := stream.Send(chunk); err != nil {
-			return status.Error(codes.Unknown, "")
+			a.log.Errorf("grpc: GetSecretData: sending chunk %v", err)
+			return status.Error(codes.Unknown, "sending chunk")
 		}
 	}
 
@@ -64,7 +90,8 @@ func (a *Adapter) GetSecretData(in *pb.GetSecretRequest, stream pb.Keeper_GetSec
 func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 	req, err := stream.Recv()
 	if err != nil {
-		return status.Error(codes.Unknown, "")
+		a.log.Errorf("grpc: PutSecret: %v", err)
+		return status.Error(codes.Unknown, ErrUnexpected.Error())
 	}
 	claims, _ := user.GetEffectiveUser(stream.Context())
 	meta := vault.Meta{
@@ -73,7 +100,6 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 		Extra:  req.GetMeta().Extra,
 	}
 	r, w := io.Pipe()
-	// TODO: error handling
 	go func() {
 		for {
 			req, err := stream.Recv()
@@ -81,8 +107,8 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 				if err == io.EOF {
 					break
 				}
+				a.log.Errorf("grpc: PutSecret: receiving chunk %v", err)
 				return
-				// return status.Error(codes.Unknown, "")
 			}
 			chunk := req.GetChunkData().ChunkData
 			w.Write(chunk)
@@ -92,7 +118,8 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 	data := vault.NewDataReader(r)
 	m, err := a.keeper.PutSecret(stream.Context(), meta, data)
 	if err != nil {
-		return status.Error(codes.Unknown, "")
+		a.log.Errorf("grpc: PutSecret: saving data %v", err)
+		return status.Error(codes.Unknown, "saving data")
 	}
 	return stream.SendAndClose(&pb.Meta{
 		Id:    string(m.ID),

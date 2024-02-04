@@ -75,33 +75,48 @@ func (m *MockkeeperService) EXPECT() *MockkeeperServiceMockRecorder {
 }
 
 // GetSecretData mocks base method.
-func (m *MockkeeperService) GetSecretData(ctx context.Context, uk vault.MetaID) (*vault.DataReader, error) {
+func (m *MockkeeperService) GetSecretData(ctx context.Context, id vault.MetaID) (*vault.DataReader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretData", ctx, uk)
+	ret := m.ctrl.Call(m, "GetSecretData", ctx, id)
 	ret0, _ := ret[0].(*vault.DataReader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecretData indicates an expected call of GetSecretData.
-func (mr *MockkeeperServiceMockRecorder) GetSecretData(ctx, uk interface{}) *gomock.Call {
+func (mr *MockkeeperServiceMockRecorder) GetSecretData(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockkeeperService)(nil).GetSecretData), ctx, uk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockkeeperService)(nil).GetSecretData), ctx, id)
 }
 
 // GetSecretMeta mocks base method.
-func (m *MockkeeperService) GetSecretMeta(ctx context.Context, uk vault.MetaID) (*vault.Meta, error) {
+func (m *MockkeeperService) GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Meta, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretMeta", ctx, uk)
+	ret := m.ctrl.Call(m, "GetSecretMeta", ctx, id)
 	ret0, _ := ret[0].(*vault.Meta)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSecretMeta indicates an expected call of GetSecretMeta.
-func (mr *MockkeeperServiceMockRecorder) GetSecretMeta(ctx, uk interface{}) *gomock.Call {
+func (mr *MockkeeperServiceMockRecorder) GetSecretMeta(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretMeta", reflect.TypeOf((*MockkeeperService)(nil).GetSecretMeta), ctx, uk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretMeta", reflect.TypeOf((*MockkeeperService)(nil).GetSecretMeta), ctx, id)
+}
+
+// GetSecretMetaByAlias mocks base method.
+func (m *MockkeeperService) GetSecretMetaByAlias(ctx context.Context, alias string) (*vault.Meta, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSecretMetaByAlias", ctx, alias)
+	ret0, _ := ret[0].(*vault.Meta)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSecretMetaByAlias indicates an expected call of GetSecretMetaByAlias.
+func (mr *MockkeeperServiceMockRecorder) GetSecretMetaByAlias(ctx, alias interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretMetaByAlias", reflect.TypeOf((*MockkeeperService)(nil).GetSecretMetaByAlias), ctx, alias)
 }
 
 // ListSecretsByUser mocks base method.

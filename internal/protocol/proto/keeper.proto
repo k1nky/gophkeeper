@@ -15,7 +15,14 @@ message Data {
     bytes chunk_data = 1;
 }
 
-message GetSecretRequest {
+message GetSecretMetaRequest {
+    oneof key {
+        string id = 1;
+        string alias = 2;
+    }
+}
+
+message GetSecretDataRequest {
     string id = 1;
 }
 
@@ -36,8 +43,8 @@ message ListSecretResponse {
 
 
 service Keeper {
-    rpc GetSecretMeta(GetSecretRequest) returns (Meta);
-    rpc GetSecretData(GetSecretRequest) returns (stream Data);
+    rpc GetSecretMeta(GetSecretMetaRequest) returns (Meta);
+    rpc GetSecretData(GetSecretDataRequest) returns (stream Data);
     rpc PutSecret(stream PutSecretRequest) returns (Meta);
     rpc ListSecrets(ListSecretRequest) returns (ListSecretResponse);
 }

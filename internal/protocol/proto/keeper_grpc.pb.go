@@ -29,8 +29,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type KeeperClient interface {
-	GetSecretMeta(ctx context.Context, in *GetSecretRequest, opts ...grpc.CallOption) (*Meta, error)
-	GetSecretData(ctx context.Context, in *GetSecretRequest, opts ...grpc.CallOption) (Keeper_GetSecretDataClient, error)
+	GetSecretMeta(ctx context.Context, in *GetSecretMetaRequest, opts ...grpc.CallOption) (*Meta, error)
+	GetSecretData(ctx context.Context, in *GetSecretDataRequest, opts ...grpc.CallOption) (Keeper_GetSecretDataClient, error)
 	PutSecret(ctx context.Context, opts ...grpc.CallOption) (Keeper_PutSecretClient, error)
 	ListSecrets(ctx context.Context, in *ListSecretRequest, opts ...grpc.CallOption) (*ListSecretResponse, error)
 }
@@ -43,7 +43,7 @@ func NewKeeperClient(cc grpc.ClientConnInterface) KeeperClient {
 	return &keeperClient{cc}
 }
 
-func (c *keeperClient) GetSecretMeta(ctx context.Context, in *GetSecretRequest, opts ...grpc.CallOption) (*Meta, error) {
+func (c *keeperClient) GetSecretMeta(ctx context.Context, in *GetSecretMetaRequest, opts ...grpc.CallOption) (*Meta, error) {
 	out := new(Meta)
 	err := c.cc.Invoke(ctx, Keeper_GetSecretMeta_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -52,7 +52,7 @@ func (c *keeperClient) GetSecretMeta(ctx context.Context, in *GetSecretRequest, 
 	return out, nil
 }
 
-func (c *keeperClient) GetSecretData(ctx context.Context, in *GetSecretRequest, opts ...grpc.CallOption) (Keeper_GetSecretDataClient, error) {
+func (c *keeperClient) GetSecretData(ctx context.Context, in *GetSecretDataRequest, opts ...grpc.CallOption) (Keeper_GetSecretDataClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Keeper_ServiceDesc.Streams[0], Keeper_GetSecretData_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
@@ -131,8 +131,8 @@ func (c *keeperClient) ListSecrets(ctx context.Context, in *ListSecretRequest, o
 // All implementations must embed UnimplementedKeeperServer
 // for forward compatibility
 type KeeperServer interface {
-	GetSecretMeta(context.Context, *GetSecretRequest) (*Meta, error)
-	GetSecretData(*GetSecretRequest, Keeper_GetSecretDataServer) error
+	GetSecretMeta(context.Context, *GetSecretMetaRequest) (*Meta, error)
+	GetSecretData(*GetSecretDataRequest, Keeper_GetSecretDataServer) error
 	PutSecret(Keeper_PutSecretServer) error
 	ListSecrets(context.Context, *ListSecretRequest) (*ListSecretResponse, error)
 	mustEmbedUnimplementedKeeperServer()
@@ -142,10 +142,10 @@ type KeeperServer interface {
 type UnimplementedKeeperServer struct {
 }
 
-func (UnimplementedKeeperServer) GetSecretMeta(context.Context, *GetSecretRequest) (*Meta, error) {
+func (UnimplementedKeeperServer) GetSecretMeta(context.Context, *GetSecretMetaRequest) (*Meta, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSecretMeta not implemented")
 }
-func (UnimplementedKeeperServer) GetSecretData(*GetSecretRequest, Keeper_GetSecretDataServer) error {
+func (UnimplementedKeeperServer) GetSecretData(*GetSecretDataRequest, Keeper_GetSecretDataServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetSecretData not implemented")
 }
 func (UnimplementedKeeperServer) PutSecret(Keeper_PutSecretServer) error {
@@ -168,7 +168,7 @@ func RegisterKeeperServer(s grpc.ServiceRegistrar, srv KeeperServer) {
 }
 
 func _Keeper_GetSecretMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSecretRequest)
+	in := new(GetSecretMetaRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -180,13 +180,13 @@ func _Keeper_GetSecretMeta_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: Keeper_GetSecretMeta_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(KeeperServer).GetSecretMeta(ctx, req.(*GetSecretRequest))
+		return srv.(KeeperServer).GetSecretMeta(ctx, req.(*GetSecretMetaRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Keeper_GetSecretData_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetSecretRequest)
+	m := new(GetSecretDataRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}

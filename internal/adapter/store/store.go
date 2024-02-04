@@ -6,6 +6,7 @@ import (
 
 	"github.com/k1nky/gophkeeper/internal/entity/user"
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
+	"golang.org/x/sync/errgroup"
 )
 
 type Adapter struct {
@@ -23,22 +24,29 @@ func New(mstore MetaStore, ostore ObjectStore) *Adapter {
 }
 
 func (a *Adapter) Open(ctx context.Context) error {
-	// TODO: errgroups
-	if err := a.mstore.Open(ctx); err != nil {
-		return err
+	g := new(errgroup.Group)
+	g.Go(func() error {
+		return a.mstore.Open(ctx)
+	})
+	g.Go(func() error {
+		return a.ostore.Open(ctx)
+	})
+	err := g.Wait()
+	if err != nil {
+		a.Close()
 	}
-	if err := a.ostore.Open(ctx); err != nil {
-		a.mstore.Close()
-		return err
-	}
-	return nil
+	return err
 }
 
 func (a *Adapter) Close() error {
-	// TODO: errgroups
-	a.mstore.Close()
-	a.ostore.Close()
-	return nil
+	g := new(errgroup.Group)
+	if a.mstore != nil {
+		g.Go(a.mstore.Close)
+	}
+	if a.ostore != nil {
+		g.Go(a.ostore.Close)
+	}
+	return g.Wait()
 }
 
 func (a *Adapter) NewUser(ctx context.Context, u user.User) (*user.User, error) {
@@ -51,16 +59,13 @@ func (a *Adapter) GetUserByLogin(ctx context.Context, login string) (*user.User,
 
 func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
 	if len(meta.ID) == 0 {
-		// TODO: wrap error
-		return nil, fmt.Errorf("internal error")
+		meta.ID = vault.NewMetaID()
 	}
 	key := fmt.Sprintf("%d-%s", meta.UserID, meta.ID)
 	if err := a.ostore.Put(ctx, key, data); err != nil {
-		// TODO: wrap error
 		return nil, err
 	}
 	if _, err := a.mstore.NewMeta(ctx, meta); err != nil {
-		// TODO: wrap error
 		a.ostore.Delete(ctx, key)
 		return nil, err
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/k1nky/gophkeeper/internal/adapter/grpc/mock"
 	"github.com/k1nky/gophkeeper/internal/entity/user"
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
+	log "github.com/k1nky/gophkeeper/internal/logger"
 	pb "github.com/k1nky/gophkeeper/internal/protocol/proto"
 )
 
@@ -36,7 +37,7 @@ func (suite *adapterTestSuite) SetupTest() {
 	ctrl := gomock.NewController(suite.T())
 	suite.auth = mock.NewMockauthService(ctrl)
 	suite.keeper = mock.NewMockkeeperService(ctrl)
-	suite.a = New(suite.auth, suite.keeper)
+	suite.a = New(suite.auth, suite.keeper, &log.Blackhole{})
 	suite.l = bufconn.Listen(1024 * 1024)
 	suite.s = grpc.NewServer()
 	pb.RegisterKeeperServer(suite.s, suite.a)

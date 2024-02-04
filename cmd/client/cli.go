@@ -93,16 +93,14 @@ func (c *PullCmd) Run(ctx *Context) error {
 	}
 	r, w := io.Pipe()
 	data := vault.NewDataReader(r)
-	// buf := vault.NewBytesBuffer(nil)
 	go func() {
+		// TODO: error handling
 		err = ctx.client.GetSecretData(ctx.ctx, vault.MetaID(c.Id), w)
 		w.Close()
 	}()
-	// err = ctx.client.GetSecretData(ctx.ctx, vault.MetaID(c.Id), w)
 	if err != nil {
 		return err
 	}
-	// data := vault.NewDataReader(buf)
 	newMeta, err := ctx.keeper.PutSecret(ctx.ctx, *meta, data)
 	fmt.Println(newMeta.String())
 	return err

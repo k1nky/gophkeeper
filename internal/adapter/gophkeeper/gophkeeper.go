@@ -121,8 +121,26 @@ func (a *Adapter) ListSecrets(ctx context.Context) (vault.List, error) {
 
 func (a *Adapter) GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Meta, error) {
 	cli := pb.NewKeeperClient(a.cc)
-	meta, err := cli.GetSecretMeta(ctx, &pb.GetSecretRequest{
-		Id: string(id),
+	meta, err := cli.GetSecretMeta(ctx, &pb.GetSecretMetaRequest{
+		Key: &pb.GetSecretMetaRequest_Id{
+			Id: string(id),
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &vault.Meta{
+		ID:    vault.MetaID(meta.Id),
+		Extra: meta.Extra,
+	}, nil
+}
+
+func (a *Adapter) GetSecretMetaByAlias(ctx context.Context, alias string) (*vault.Meta, error) {
+	cli := pb.NewKeeperClient(a.cc)
+	meta, err := cli.GetSecretMeta(ctx, &pb.GetSecretMetaRequest{
+		Key: &pb.GetSecretMetaRequest_Alias{
+			Alias: alias,
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -135,7 +153,7 @@ func (a *Adapter) GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Me
 
 func (a *Adapter) GetSecretData(ctx context.Context, id vault.MetaID, w io.Writer) error {
 	cli := pb.NewKeeperClient(a.cc)
-	stream, err := cli.GetSecretData(ctx, &pb.GetSecretRequest{
+	stream, err := cli.GetSecretData(ctx, &pb.GetSecretDataRequest{
 		Id: string(id),
 	})
 	if err != nil {
