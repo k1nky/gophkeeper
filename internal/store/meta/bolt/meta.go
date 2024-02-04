@@ -9,10 +9,12 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+// NewMeta добавляет новую запись мета-данных секрета. Возвращает добавленный элемент.
 func (bs *BoltStorage) NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, error) {
 	err := bs.DB.Update(func(tx *bolt.Tx) error {
 
 		mb := tx.Bucket(tb("meta"))
+		// группируем мета-данные по пользователям
 		umb, err := mb.CreateBucketIfNotExists(tb(fmt.Sprintf("%d", m.UserID)))
 		if err != nil {
 			return err
@@ -22,6 +24,7 @@ func (bs *BoltStorage) NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, 
 			return err
 		}
 
+		// TODO: проверка если такой элемент с ID уже существует
 		return umb.Put(tb(string(m.ID)), value)
 	})
 	if err == nil {
@@ -30,6 +33,7 @@ func (bs *BoltStorage) NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, 
 	return nil, err
 }
 
+// GetMetaByID возвращает мета-данные секрета пользователя userID по идентификатору metaID.
 func (bs *BoltStorage) GetMetaByID(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
 	m := &vault.Meta{}
 	err := bs.View(func(tx *bolt.Tx) error {
@@ -55,6 +59,7 @@ func (bs *BoltStorage) GetMetaByID(ctx context.Context, metaID vault.MetaID, use
 	return m, err
 }
 
+// GetMetaByID возвращает мета-данные секрета пользователя userID по псевдониму alias.
 func (bs *BoltStorage) GetMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error) {
 	if len(alias) == 0 {
 		return nil, nil
@@ -90,6 +95,7 @@ func (bs *BoltStorage) GetMetaByAlias(ctx context.Context, alias string, userID 
 	return m, err
 }
 
+// ListMetaByUser возвращает список мета-данных секретов пользователя userID.
 func (bs *BoltStorage) ListMetaByUser(ctx context.Context, userID user.ID) (vault.List, error) {
 	list := vault.List{}
 	err := bs.View(func(tx *bolt.Tx) error {

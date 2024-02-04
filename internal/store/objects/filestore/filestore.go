@@ -84,7 +84,7 @@ func (fs *FileStore) read(path string) (*vault.DataReader, error) {
 }
 
 func (fs *FileStore) path(relative string) string {
-	// TODO: sync.Poolhash
+	// TODO: sync.Pool hash
 	h := sha256.New()
 	s := hex.EncodeToString(h.Sum([]byte(relative)))
 	return path.Join(fs.Path, s)

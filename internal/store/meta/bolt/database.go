@@ -1,3 +1,4 @@
+// Пакет bolt предоставляет хранилище мета-данных секретов в boltdb.
 package bolt
 
 import (
@@ -9,6 +10,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+// Хранилище мета-данных секретов в boltdb. Хранимые данные серилизуются средстами пакета gob.
 type BoltStorage struct {
 	dsn string
 	*bolt.DB
@@ -16,17 +18,20 @@ type BoltStorage struct {
 
 var _ store.MetaStore = new(BoltStorage)
 
+// New возвращает новое хранилище мета-данных секретов в boltdb.
 func New(dsn string) *BoltStorage {
 	return &BoltStorage{
 		dsn: dsn,
 	}
 }
 
+// Open открывает хранилище.
 func (bs *BoltStorage) Open(ctx context.Context) (err error) {
 	if bs.DB, err = bolt.Open(bs.dsn, 0600, &bolt.Options{}); err != nil {
 		return
 	}
 	err = bs.DB.Update(func(tx *bolt.Tx) error {
+		// создаем обязательные бакеты
 		for _, bucket := range []string{"users", "meta"} {
 			if _, err := tx.CreateBucketIfNotExists(tb(bucket)); err != nil {
 				return err
@@ -37,6 +42,7 @@ func (bs *BoltStorage) Open(ctx context.Context) (err error) {
 	return
 }
 
+// Close закрывает хранилище.
 func (bs *BoltStorage) Close() error {
 	return bs.DB.Close()
 }

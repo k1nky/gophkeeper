@@ -65,6 +65,7 @@ func (a *Adapter) GetSecretData(in *pb.GetSecretDataRequest, stream pb.Keeper_Ge
 	}
 	defer reader.Close()
 
+	// отправлять данные секрета будем по частям в потоке
 	buffer := make([]byte, 1024)
 	for {
 		n, err := reader.Read(buffer)
@@ -88,6 +89,7 @@ func (a *Adapter) GetSecretData(in *pb.GetSecretDataRequest, stream pb.Keeper_Ge
 }
 
 func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
+	// первым запросом получаем мета-данные секрета
 	req, err := stream.Recv()
 	if err != nil {
 		a.log.Errorf("grpc: PutSecret: %v", err)
@@ -96,11 +98,15 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 	claims, _ := user.GetEffectiveUser(stream.Context())
 	meta := vault.Meta{
 		ID:     vault.MetaID(req.GetMeta().Id),
+		Alias:  req.GetMeta().Alias,
 		UserID: claims.ID,
 		Extra:  req.GetMeta().Extra,
 	}
+	// Данные секрета будут приходить частями в потоке stream.
+	// С помощью Pipe будем передавать данные также по частям в хранилище.
 	r, w := io.Pipe()
 	go func() {
+		defer w.Close()
 		for {
 			req, err := stream.Recv()
 			if err != nil {
@@ -113,7 +119,6 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 			chunk := req.GetChunkData().ChunkData
 			w.Write(chunk)
 		}
-		w.Close()
 	}()
 	data := vault.NewDataReader(r)
 	m, err := a.keeper.PutSecret(stream.Context(), meta, data)
@@ -121,8 +126,10 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 		a.log.Errorf("grpc: PutSecret: saving data %v", err)
 		return status.Error(codes.Unknown, "saving data")
 	}
+	// отправляем в ответ мета-данные добавленного секрета
 	return stream.SendAndClose(&pb.Meta{
 		Id:    string(m.ID),
+		Alias: m.Alias,
 		Extra: m.Extra,
 	})
 }

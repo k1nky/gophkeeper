@@ -1,3 +1,4 @@
+// Пакет store предоставляет адаптер для работы с хранилищем секретов.
 package store
 
 import (
@@ -9,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Adapter адаптер хранилища секретов.
 type Adapter struct {
 	mstore MetaStore
 	ostore ObjectStore
@@ -16,6 +18,8 @@ type Adapter struct {
 
 var _ Store = new(Adapter)
 
+// New возвращает новый адаптер к хранилищу секретов, где mstore определяет способ хранения мета-данных,
+// а ostore хранилище самой секретной информации.
 func New(mstore MetaStore, ostore ObjectStore) *Adapter {
 	return &Adapter{
 		mstore: mstore,
@@ -23,6 +27,7 @@ func New(mstore MetaStore, ostore ObjectStore) *Adapter {
 	}
 }
 
+// Open открывает хранилище секретов. Возвращает ошибку, если открытие хранилища мета-данных и/или объектов завершилось с ошибкой.
 func (a *Adapter) Open(ctx context.Context) error {
 	g := new(errgroup.Group)
 	g.Go(func() error {
@@ -38,6 +43,7 @@ func (a *Adapter) Open(ctx context.Context) error {
 	return err
 }
 
+// Close закрывает хранилище секретов. Возвращает ошибку, если закрытие хранилища мета-данных и/или объектов завершилось с ошибкой.
 func (a *Adapter) Close() error {
 	g := new(errgroup.Group)
 	if a.mstore != nil {
@@ -49,34 +55,45 @@ func (a *Adapter) Close() error {
 	return g.Wait()
 }
 
+// NewUser создает нового пользователя u и возвращает указатель на него.
 func (a *Adapter) NewUser(ctx context.Context, u user.User) (*user.User, error) {
 	return a.mstore.NewUser(ctx, u)
 }
 
+// GetUserByLogin возвращает пользователя с именем login.
 func (a *Adapter) GetUserByLogin(ctx context.Context, login string) (*user.User, error) {
 	return a.mstore.GetUserByLogin(ctx, login)
 }
 
+// PutSecret добавляет новый секрет в хранилище. Т.к. секрет может быть перенесен из локального хранилища в удаленное
+// в meta должен быть указан уникальный ID в пределах одного пользователя, поэтому лучше генерировать его заранее.
+// Метод возвращает ссылку на мета-данные добавленного секрета.
 func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
 	if len(meta.ID) == 0 {
 		meta.ID = vault.NewMetaID()
 	}
-	key := fmt.Sprintf("%d-%s", meta.UserID, meta.ID)
+	key := a.buildDataKey(meta.UserID, meta.ID)
+	// сначала пробуем записать данные секрета в хранилище
 	if err := a.ostore.Put(ctx, key, data); err != nil {
 		return nil, err
 	}
+	// потом записываем мета-данные
 	if _, err := a.mstore.NewMeta(ctx, meta); err != nil {
+		// если их записать не удалось, то удаляем секрет
 		a.ostore.Delete(ctx, key)
 		return nil, err
 	}
 	return &meta, nil
 }
 
+// GetSecretData возвращает данные секрета пользователя userID с ид metaID. Обязательно нужно следить за своевременным
+// закрытием полученных данных.
 func (a *Adapter) GetSecretData(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.DataReader, error) {
-	key := fmt.Sprintf("%d-%s", userID, metaID)
+	key := a.buildDataKey(userID, metaID)
 	return a.ostore.Get(ctx, key)
 }
 
+// GetSecretMetaByID возвращает мета-данные секрета с ид metaID пользователя userID.
 func (a *Adapter) GetSecretMetaByID(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error) {
 	m, err := a.mstore.GetMetaByID(ctx, metaID, userID)
 	if err != nil {
@@ -88,6 +105,7 @@ func (a *Adapter) GetSecretMetaByID(ctx context.Context, metaID vault.MetaID, us
 	return m, err
 }
 
+// GetSecretMetaByID возвращает мета-данные секрета с псевдонимом alias пользователя userID.
 func (a *Adapter) GetSecretMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error) {
 	m, err := a.mstore.GetMetaByAlias(ctx, alias, userID)
 	if err != nil {
@@ -99,6 +117,11 @@ func (a *Adapter) GetSecretMetaByAlias(ctx context.Context, alias string, userID
 	return m, err
 }
 
+// ListSecretsByUser возвращает списо мета-данных секретов пользователя userID.
 func (a *Adapter) ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error) {
 	return a.mstore.ListMetaByUser(ctx, userID)
+}
+
+func (a *Adapter) buildDataKey(userID user.ID, metaID vault.MetaID) string {
+	return fmt.Sprintf("%d-%s", userID, metaID)
 }
