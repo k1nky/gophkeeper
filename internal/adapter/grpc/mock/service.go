@@ -120,18 +120,18 @@ func (mr *MockkeeperServiceMockRecorder) GetSecretMetaByAlias(ctx, alias interfa
 }
 
 // ListSecretsByUser mocks base method.
-func (m *MockkeeperService) ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error) {
+func (m *MockkeeperService) ListSecretsByUser(ctx context.Context) (vault.List, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListSecretsByUser", ctx, userID)
+	ret := m.ctrl.Call(m, "ListSecretsByUser", ctx)
 	ret0, _ := ret[0].(vault.List)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListSecretsByUser indicates an expected call of ListSecretsByUser.
-func (mr *MockkeeperServiceMockRecorder) ListSecretsByUser(ctx, userID interface{}) *gomock.Call {
+func (mr *MockkeeperServiceMockRecorder) ListSecretsByUser(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSecretsByUser", reflect.TypeOf((*MockkeeperService)(nil).ListSecretsByUser), ctx, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSecretsByUser", reflect.TypeOf((*MockkeeperService)(nil).ListSecretsByUser), ctx)
 }
 
 // PutSecret mocks base method.

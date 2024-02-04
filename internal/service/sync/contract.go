@@ -4,16 +4,16 @@ import (
 	"context"
 	"io"
 
-	"github.com/k1nky/gophkeeper/internal/entity/user"
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
 )
 
 //go:generate mockgen -source=contract.go -destination=mock/storage.go -package=mock storage
 type storage interface {
+	GetSecretData(ctx context.Context, id vault.MetaID) (*vault.DataReader, error)
+	GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Meta, error)
+	GetSecretMetaByAlias(ctx context.Context, alias string) (*vault.Meta, error)
+	ListSecretsByUser(ctx context.Context) (vault.List, error)
 	PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error)
-	GetSecretData(ctx context.Context, uk vault.MetaID) (*vault.DataReader, error)
-	GetSecretMeta(ctx context.Context, uk vault.MetaID) (*vault.Meta, error)
-	ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error)
 }
 
 type client interface {
@@ -23,7 +23,8 @@ type client interface {
 	PutSecret(ctx context.Context, meta vault.Meta, r io.Reader) (*vault.Meta, error)
 }
 
-type logger interface {
-	Errorf(template string, args ...interface{})
-	Debugf(template string, args ...interface{})
-}
+// TODO: unused
+// type logger interface {
+// 	Errorf(template string, args ...interface{})
+// 	Debugf(template string, args ...interface{})
+// }

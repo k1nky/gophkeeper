@@ -21,11 +21,12 @@ func New(store storage, log logger) *Service {
 }
 
 func (s *Service) GetSecretData(ctx context.Context, metaID vault.MetaID) (*vault.DataReader, error) {
+	uid := user.LocalUserID
 	claims, ok := user.GetEffectiveUser(ctx)
-	if !ok {
-		// TODO:
+	if ok {
+		uid = claims.ID
 	}
-	meta, err := s.store.GetSecretMetaByID(ctx, metaID, claims.ID)
+	meta, err := s.store.GetSecretMetaByID(ctx, metaID, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -39,27 +40,33 @@ func (s *Service) GetSecretData(ctx context.Context, metaID vault.MetaID) (*vaul
 	return s.store.GetSecretData(ctx, metaID, claims.ID)
 }
 
-// TODO: verify userID
 func (s *Service) GetSecretMeta(ctx context.Context, metaID vault.MetaID) (*vault.Meta, error) {
+	uid := user.LocalUserID
 	claims, ok := user.GetEffectiveUser(ctx)
-	if !ok {
-		// TODO:
+	if ok {
+		uid = claims.ID
 	}
-	return s.store.GetSecretMetaByID(ctx, metaID, claims.ID)
+	return s.store.GetSecretMetaByID(ctx, metaID, uid)
 }
 
 func (s *Service) GetSecretMetaByAlias(ctx context.Context, alias string) (*vault.Meta, error) {
+	uid := user.LocalUserID
 	claims, ok := user.GetEffectiveUser(ctx)
-	if !ok {
-		// TODO:
+	if ok {
+		uid = claims.ID
 	}
-	return s.store.GetSecretMetaByAlias(ctx, alias, claims.ID)
+	return s.store.GetSecretMetaByAlias(ctx, alias, uid)
 }
 
 func (s *Service) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
 	return s.store.PutSecret(ctx, meta, data)
 }
 
-func (s *Service) ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error) {
-	return s.store.ListSecretsByUser(ctx, userID)
+func (s *Service) ListSecretsByUser(ctx context.Context) (vault.List, error) {
+	uid := user.LocalUserID
+	claims, ok := user.GetEffectiveUser(ctx)
+	if ok {
+		uid = claims.ID
+	}
+	return s.store.ListSecretsByUser(ctx, uid)
 }

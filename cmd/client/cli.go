@@ -8,40 +8,54 @@ import (
 
 	"github.com/k1nky/gophkeeper/internal/adapter/gophkeeper"
 	"github.com/k1nky/gophkeeper/internal/crypto"
-	"github.com/k1nky/gophkeeper/internal/entity/user"
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
 	"github.com/k1nky/gophkeeper/internal/service/keeper"
+	"github.com/k1nky/gophkeeper/internal/service/sync"
 )
 
 type Context struct {
-	Debug  bool
-	keeper *keeper.Service
-	ctx    context.Context
-	client *gophkeeper.Adapter
+	Debug       bool   `optional:"" name:"debug" env:"DEBUG"`
+	RemoteVault string `optional:"" name:"remote-vault" env:"REMOTE_VAULT"`
+	LocalVault  string `optional:"" name:"local-vault" env:"LOCAL_VAULT"`
+	User        string `optional:"" name:"user" env:"user"`
+	Password    string `optional:"" name:"password" env:"password"`
+	keeper      *keeper.Service
+	ctx         context.Context
+	sync        *sync.Service
+	client      *gophkeeper.Adapter
 }
 
 type LsCmd struct {
-	Remote bool
+	Remote bool `optional:"" name:"remote" help:"List secrets from remote storage."`
 }
 
 type PutCmd struct {
-	File  string `arg:"" optional:"" name:"file" help:"Path to secret file." type:"path"`
-	Line  string
-	Alias string
+	File  string `arg:"" optional:"" name:"file" help:"Path to file with the secret to be placed in local storage." type:"path"`
+	Text  string `arg:"" optional:"" name:"text" help:"Secret text to save in local storage."`
+	Alias string `arg:"" optinal:"" name:"alias" help:"Secret entry alias."`
 }
 
 type ShCmd struct {
-	Id    string
-	Alias string
+	Id    string `arg:"" optinal:"" name:"alias" help:"Secret entry ID to show."`
+	Alias string `arg:"" optinal:"" name:"alias" help:"Secret entry alias to show."`
 }
 
 type PushCmd struct {
-	Id    string
-	Alias string
+	Id    string `arg:"" optinal:"" name:"alias" help:"Secret entry ID to push."`
+	Alias string `arg:"" optinal:"" name:"alias" help:"Secret entry alias to push."`
 }
 
 type PullCmd struct {
-	Id string
+	Id string `arg:"" optinal:"" name:"alias" help:"Secret entry ID to pull."`
+}
+
+var CLI struct {
+	Debug bool    `help:"Enable debug mode."`
+	Ls    LsCmd   `cmd:"" help:"List secrects from local or remote storage."`
+	Put   PutCmd  `cmd:"" help:"Put secrect to local storage."`
+	Push  PushCmd `cmd:"" help:"Push secrect to remote storage."`
+	Sh    ShCmd   `cmd:"" help:"Show secrect from local storage."`
+	Pull  PullCmd `cmd:"" help:"Pull secrect from remote storage."`
 }
 
 func (c *PushCmd) Run(ctx *Context) error {
@@ -49,13 +63,7 @@ func (c *PushCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	data, err := ctx.keeper.GetSecretData(ctx.ctx, vault.MetaID(c.Id))
-	if err != nil {
-		return err
-	}
-	defer data.Close()
-	m, err := ctx.client.PutSecret(ctx.ctx, *meta, data)
-	fmt.Println(m, err)
+	err = ctx.sync.Push(ctx.ctx, *meta)
 	return err
 }
 
@@ -67,14 +75,14 @@ func (c *LsCmd) Run(ctx *Context) error {
 	if c.Remote {
 		list, err = ctx.client.ListSecrets(ctx.ctx)
 	} else {
-		list, err = ctx.keeper.ListSecretsByUser(ctx.ctx, user.LocalUserID)
+		list, err = ctx.keeper.ListSecretsByUser(ctx.ctx)
 	}
 	fmt.Println(list.String())
 	return err
 }
 
 func (c *PutCmd) Run(ctx *Context) error {
-	line := vault.NewBytesBuffer([]byte(c.Line))
+	line := vault.NewBytesBuffer([]byte(c.Text))
 	// TODO: вектор инициализации можно хранить в мета-данных
 	enc, _ := crypto.NewEncryptReader("secret", line, nil)
 	data := vault.NewDataReader(enc)
@@ -91,17 +99,7 @@ func (c *PullCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	r, w := io.Pipe()
-	data := vault.NewDataReader(r)
-	go func() {
-		// TODO: error handling
-		err = ctx.client.GetSecretData(ctx.ctx, vault.MetaID(c.Id), w)
-		w.Close()
-	}()
-	if err != nil {
-		return err
-	}
-	newMeta, err := ctx.keeper.PutSecret(ctx.ctx, *meta, data)
+	newMeta, err := ctx.sync.Pull(ctx.ctx, *meta)
 	fmt.Println(newMeta.String())
 	return err
 }
@@ -128,13 +126,4 @@ func (c *ShCmd) Run(ctx *Context) error {
 	defer data.Close()
 	_, err = io.Copy(os.Stdout, dec)
 	return err
-}
-
-var CLI struct {
-	Debug bool    `help:"Enable debug mode."`
-	Ls    LsCmd   `cmd:"" help:"List secrects."`
-	Put   PutCmd  `cmd:"" help:"Put secrect."`
-	Push  PushCmd `cmd:"" help:"Push secrect."`
-	Sh    ShCmd   `cmd:"" help:"Show secrect."`
-	Pull  PullCmd `cmd:"" help:"Pull secrect."`
 }

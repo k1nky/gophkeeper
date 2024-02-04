@@ -77,7 +77,7 @@ func (suite *adapterTestSuite) TestListSecrets() {
 			Extra:  "extra data",
 		},
 	}
-	suite.keeper.EXPECT().ListSecretsByUser(gomock.Any(), gomock.Any()).Return(expected, nil)
+	suite.keeper.EXPECT().ListSecretsByUser(gomock.Any()).Return(expected, nil)
 	resp, err := client.ListSecrets(ctx, &pb.ListSecretRequest{
 		UserId: 1,
 	})

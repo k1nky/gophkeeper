@@ -128,9 +128,7 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 }
 
 func (a *Adapter) ListSecrets(ctx context.Context, in *pb.ListSecretRequest) (*pb.ListSecretResponse, error) {
-	claims, _ := user.GetEffectiveUser(ctx)
-	// TODO: source user id
-	secrets, err := a.keeper.ListSecretsByUser(ctx, claims.ID)
+	secrets, err := a.keeper.ListSecretsByUser(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

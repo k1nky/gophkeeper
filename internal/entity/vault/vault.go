@@ -89,15 +89,15 @@ func NewMetaID() MetaID {
 func (t SecretType) String() string {
 	switch t {
 	case Text:
-		return "text"
+		return "TEXT"
 	case LoginPassword:
-		return "login-password"
+		return "LOGIN_PASSWORD"
 	case CreditCard:
-		return "credit-card"
+		return "CREDIT_CARD"
 	case File:
-		return "file"
+		return "FILE"
 	}
-	return "unknown"
+	return "UNKNOWN"
 }
 
 func (m Meta) String() string {

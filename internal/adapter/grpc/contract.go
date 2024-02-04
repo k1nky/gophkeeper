@@ -17,7 +17,7 @@ type keeperService interface {
 	GetSecretData(ctx context.Context, id vault.MetaID) (*vault.DataReader, error)
 	GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Meta, error)
 	GetSecretMetaByAlias(ctx context.Context, alias string) (*vault.Meta, error)
-	ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error)
+	ListSecretsByUser(ctx context.Context) (vault.List, error)
 	PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error)
 }
 

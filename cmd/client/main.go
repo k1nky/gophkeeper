@@ -12,6 +12,7 @@ import (
 	"github.com/k1nky/gophkeeper/internal/adapter/store"
 	"github.com/k1nky/gophkeeper/internal/logger"
 	"github.com/k1nky/gophkeeper/internal/service/keeper"
+	"github.com/k1nky/gophkeeper/internal/service/sync"
 	"github.com/k1nky/gophkeeper/internal/store/meta/bolt"
 	"github.com/k1nky/gophkeeper/internal/store/objects/filestore"
 )
@@ -25,6 +26,7 @@ func main() {
 	defer store.Close()
 	keeper := keeper.New(store, &logger.Blackhole{})
 	client := gophkeeper.New("http://localhost:8080", "")
+	sync := sync.New(client, keeper)
 	_, err = client.Login(ctx, "u", "p")
 	fmt.Println(err)
 	err = client.Open(ctx)
@@ -36,6 +38,7 @@ func main() {
 		keeper: keeper,
 		ctx:    ctx,
 		client: client,
+		sync:   sync,
 	})
 	fmt.Println(err)
 
