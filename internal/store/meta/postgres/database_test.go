@@ -1,9 +1,11 @@
-package database
+package postgres
 
 import (
 	"context"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 func openTestDB() (*PostgresStorage, error) {
@@ -25,6 +27,6 @@ func shouldSkipDBTest(t *testing.T) bool {
 }
 
 func TestAdapter(t *testing.T) {
-	// suite.Run(t, new(usersTestSuite))
+	suite.Run(t, new(usersTestSuite))
 	// suite.Run(t, new(ordersTestSuite))
 }
