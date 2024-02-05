@@ -38,10 +38,12 @@ type ShCmd struct {
 type PushCmd struct {
 	Id    string `optional:"" name:"id" help:"Secret entry ID to push."`
 	Alias string `optional:"" name:"alias" help:"Secret entry alias to push."`
+	All   bool   `optional:"" name:"all" help:"Push all secrets from local storage."`
 }
 
 type PullCmd struct {
-	Id string `optional:"" name:"id" help:"Secret entry ID to pull."`
+	Id  string `optional:"" name:"id" help:"Secret entry ID to pull."`
+	All bool   `optional:"" name:"all" help:"Pull all secrets from remote storage."`
 }
 
 type remoteVaultFlag string
@@ -62,11 +64,15 @@ var cli struct {
 }
 
 func (c *PushCmd) Run(ctx *Context) error {
+	if c.All {
+		_, err := ctx.sync.PullAll(ctx.ctx)
+		return err
+	}
 	meta, err := ctx.keeper.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))
 	if err != nil {
 		return err
 	}
-	err = ctx.sync.Push(ctx.ctx, *meta)
+	_, err = ctx.sync.Push(ctx.ctx, *meta)
 	return err
 }
 
@@ -98,6 +104,10 @@ func (c *PutCmd) Run(ctx *Context) error {
 }
 
 func (c *PullCmd) Run(ctx *Context) error {
+	if c.All {
+		_, err := ctx.sync.PullAll(ctx.ctx)
+		return err
+	}
 	meta, err := ctx.client.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))
 	if err != nil {
 		return err

@@ -43,12 +43,44 @@ func (s *Service) Pull(ctx context.Context, meta vault.Meta) (*vault.Meta, error
 	return newMeta, nil
 }
 
-func (s *Service) Push(ctx context.Context, meta vault.Meta) error {
+func (s *Service) PullAll(ctx context.Context) (vault.List, error) {
+	pulled := vault.List{}
+	list, err := s.client.ListSecrets(ctx)
+	if err != nil {
+		return pulled, err
+	}
+	for _, v := range list {
+		m, err := s.Pull(ctx, v)
+		if err != nil {
+			return pulled, err
+		}
+		pulled = append(pulled, *m)
+	}
+	return pulled, nil
+}
+
+func (s *Service) Push(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
 	data, err := s.storage.GetSecretData(ctx, meta.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer data.Close()
-	_, err = s.client.PutSecret(ctx, meta, data)
-	return err
+	m, err := s.client.PutSecret(ctx, meta, data)
+	return m, err
+}
+
+func (s *Service) PushAll(ctx context.Context) (vault.List, error) {
+	pushed := vault.List{}
+	list, err := s.storage.ListSecretsByUser(ctx)
+	if err != nil {
+		return pushed, err
+	}
+	for _, v := range list {
+		m, err := s.Push(ctx, v)
+		if err != nil {
+			return pushed, err
+		}
+		pushed = append(pushed, *m)
+	}
+	return pushed, nil
 }
