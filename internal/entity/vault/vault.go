@@ -31,10 +31,10 @@ type DataReader struct {
 type SecretType int
 
 const (
-	Text SecretType = iota
-	LoginPassword
-	CreditCard
-	File
+	TypeText SecretType = iota
+	TypeLoginPassword
+	TypeCreditCard
+	TypeFile
 )
 
 func NewBytesBuffer(p []byte) *BytesBuffer {
@@ -88,13 +88,13 @@ func NewMetaID() MetaID {
 
 func (t SecretType) String() string {
 	switch t {
-	case Text:
+	case TypeText:
 		return "TEXT"
-	case LoginPassword:
+	case TypeLoginPassword:
 		return "LOGIN_PASSWORD"
-	case CreditCard:
+	case TypeCreditCard:
 		return "CREDIT_CARD"
-	case File:
+	case TypeFile:
 		return "FILE"
 	}
 	return "UNKNOWN"

@@ -27,8 +27,8 @@ type LsCmd struct {
 }
 
 type PutCmd struct {
-	File  string `optional:"" name:"file" help:"Path to file with the secret to be placed in local storage." type:"path"`
-	Text  string `optional:"" name:"text" help:"Secret text to save in local storage."`
+	Type  string `required:"" name:"type" enum:"text,file,login" default:"text"`
+	Value string `arg:"" name:"value" help:""`
 	Alias string `optional:"" name:"alias" help:"Secret entry alias."`
 }
 
@@ -94,14 +94,29 @@ func (c *LsCmd) Run(ctx *Context) error {
 }
 
 func (c *PutCmd) Run(ctx *Context) error {
-	line := vault.NewBytesBuffer([]byte(c.Text))
-	// TODO: вектор инициализации можно хранить в мета-данных
-	enc, _ := crypto.NewEncryptReader("secret", line, nil)
-	data := vault.NewDataReader(enc)
-	meta, err := ctx.keeper.PutSecret(ctx.ctx, vault.Meta{
+	var value io.ReadCloser
+	m := vault.Meta{
 		ID:    vault.NewMetaID(),
 		Alias: c.Alias,
-	}, data)
+	}
+	switch c.Type {
+	case "text":
+		value = vault.NewBytesBuffer([]byte(c.Value))
+		m.Type = vault.TypeText
+	case "login":
+		lp := &vault.LoginPassword{}
+		lp.Prompt()
+		b, err := lp.Bytes()
+		if err != nil {
+			return err
+		}
+		m.Type = vault.TypeLoginPassword
+		value = vault.NewBytesBuffer(b)
+	}
+	// TODO: вектор инициализации можно хранить в мета-данных
+	enc, _ := crypto.NewEncryptReader("secret", value, nil)
+	data := vault.NewDataReader(enc)
+	meta, err := ctx.keeper.PutSecret(ctx.ctx, m, data)
 	fmt.Println(meta.String())
 	return err
 }

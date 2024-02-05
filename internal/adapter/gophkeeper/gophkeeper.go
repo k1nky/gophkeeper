@@ -113,6 +113,7 @@ func (a *Adapter) ListSecrets(ctx context.Context) (vault.List, error) {
 	for _, v := range resp.Meta {
 		list = append(list, vault.Meta{
 			Extra: v.Extra,
+			Alias: v.Alias,
 			ID:    vault.MetaID(v.Id),
 		})
 	}
