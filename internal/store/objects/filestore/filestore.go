@@ -21,7 +21,8 @@ type FileStore struct {
 
 var _ store.ObjectStore = new(FileStore)
 
-// New возвращает экземпляр хранилища.
+// New возвращает экземпляр хранилища, которое будет располагаться в каталоге path.
+// При необходимости каталог будет создан при открытии.
 func New(path string) *FileStore {
 	return &FileStore{
 		Path: path,

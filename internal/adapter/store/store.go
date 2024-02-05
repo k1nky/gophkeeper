@@ -18,31 +18,6 @@ type Adapter struct {
 
 var _ Store = new(Adapter)
 
-// New возвращает новый адаптер к хранилищу секретов, где mstore определяет способ хранения мета-данных,
-// а ostore хранилище самой секретной информации.
-func New(mstore MetaStore, ostore ObjectStore) *Adapter {
-	return &Adapter{
-		mstore: mstore,
-		ostore: ostore,
-	}
-}
-
-// Open открывает хранилище секретов. Возвращает ошибку, если открытие хранилища мета-данных и/или объектов завершилось с ошибкой.
-func (a *Adapter) Open(ctx context.Context) error {
-	g := new(errgroup.Group)
-	g.Go(func() error {
-		return a.mstore.Open(ctx)
-	})
-	g.Go(func() error {
-		return a.ostore.Open(ctx)
-	})
-	err := g.Wait()
-	if err != nil {
-		a.Close()
-	}
-	return err
-}
-
 // Close закрывает хранилище секретов. Возвращает ошибку, если закрытие хранилища мета-данных и/или объектов завершилось с ошибкой.
 func (a *Adapter) Close() error {
 	g := new(errgroup.Group)
@@ -55,35 +30,13 @@ func (a *Adapter) Close() error {
 	return g.Wait()
 }
 
-// NewUser создает нового пользователя u и возвращает указатель на него.
-func (a *Adapter) NewUser(ctx context.Context, u user.User) (*user.User, error) {
-	return a.mstore.NewUser(ctx, u)
-}
-
-// GetUserByLogin возвращает пользователя с именем login.
-func (a *Adapter) GetUserByLogin(ctx context.Context, login string) (*user.User, error) {
-	return a.mstore.GetUserByLogin(ctx, login)
-}
-
-// PutSecret добавляет новый секрет в хранилище. Т.к. секрет может быть перенесен из локального хранилища в удаленное
-// в meta должен быть указан уникальный ID в пределах одного пользователя, поэтому лучше генерировать его заранее.
-// Метод возвращает ссылку на мета-данные добавленного секрета.
-func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
-	if len(meta.ID) == 0 {
-		meta.ID = vault.NewMetaID()
+// New возвращает новый адаптер к хранилищу секретов, где mstore определяет способ хранения мета-данных,
+// а ostore хранилище самой секретной информации.
+func New(mstore MetaStore, ostore ObjectStore) *Adapter {
+	return &Adapter{
+		mstore: mstore,
+		ostore: ostore,
 	}
-	key := a.buildDataKey(meta.UserID, meta.ID)
-	// сначала пробуем записать данные секрета в хранилище
-	if err := a.ostore.Put(ctx, key, data); err != nil {
-		return nil, err
-	}
-	// потом записываем мета-данные
-	if _, err := a.mstore.NewMeta(ctx, meta); err != nil {
-		// если их записать не удалось, то удаляем секрет
-		a.ostore.Delete(ctx, key)
-		return nil, err
-	}
-	return &meta, nil
 }
 
 // GetSecretData возвращает данные секрета пользователя userID с ид metaID. Обязательно нужно следить за своевременным
@@ -117,9 +70,56 @@ func (a *Adapter) GetSecretMetaByAlias(ctx context.Context, alias string, userID
 	return m, err
 }
 
+// GetUserByLogin возвращает пользователя с именем login.
+func (a *Adapter) GetUserByLogin(ctx context.Context, login string) (*user.User, error) {
+	return a.mstore.GetUserByLogin(ctx, login)
+}
+
 // ListSecretsByUser возвращает списо мета-данных секретов пользователя userID.
 func (a *Adapter) ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error) {
 	return a.mstore.ListMetaByUser(ctx, userID)
+}
+
+// NewUser создает нового пользователя u и возвращает указатель на него.
+func (a *Adapter) NewUser(ctx context.Context, u user.User) (*user.User, error) {
+	return a.mstore.NewUser(ctx, u)
+}
+
+// Open открывает хранилище секретов. Возвращает ошибку, если открытие хранилища мета-данных и/или объектов завершилось с ошибкой.
+func (a *Adapter) Open(ctx context.Context) error {
+	g := new(errgroup.Group)
+	g.Go(func() error {
+		return a.mstore.Open(ctx)
+	})
+	g.Go(func() error {
+		return a.ostore.Open(ctx)
+	})
+	err := g.Wait()
+	if err != nil {
+		a.Close()
+	}
+	return err
+}
+
+// PutSecret добавляет новый секрет в хранилище. Т.к. секрет может быть перенесен из локального хранилища в удаленное
+// в meta должен быть указан уникальный ID в пределах одного пользователя, поэтому лучше генерировать его заранее.
+// Метод возвращает ссылку на мета-данные добавленного секрета.
+func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
+	if len(meta.ID) == 0 {
+		meta.ID = vault.NewMetaID()
+	}
+	key := a.buildDataKey(meta.UserID, meta.ID)
+	// сначала пробуем записать данные секрета в хранилище
+	if err := a.ostore.Put(ctx, key, data); err != nil {
+		return nil, err
+	}
+	// потом записываем мета-данные
+	if _, err := a.mstore.NewMeta(ctx, meta); err != nil {
+		// если их записать не удалось, то удаляем секрет
+		a.ostore.Delete(ctx, key)
+		return nil, err
+	}
+	return &meta, nil
 }
 
 func (a *Adapter) buildDataKey(userID user.ID, metaID vault.MetaID) string {

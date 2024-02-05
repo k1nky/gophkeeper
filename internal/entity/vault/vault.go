@@ -28,15 +28,6 @@ type DataReader struct {
 	reader *bufio.Reader
 }
 
-type SecretType int
-
-const (
-	TypeText SecretType = iota
-	TypeLoginPassword
-	TypeCreditCard
-	TypeFile
-)
-
 func NewBytesBuffer(p []byte) *BytesBuffer {
 	return &BytesBuffer{
 		Buffer: *bytes.NewBuffer(p),
@@ -84,20 +75,6 @@ func NewMetaID() MetaID {
 		return ""
 	}
 	return MetaID(hex.EncodeToString(b))
-}
-
-func (t SecretType) String() string {
-	switch t {
-	case TypeText:
-		return "TEXT"
-	case TypeLoginPassword:
-		return "LOGIN_PASSWORD"
-	case TypeCreditCard:
-		return "CREDIT_CARD"
-	case TypeFile:
-		return "FILE"
-	}
-	return "UNKNOWN"
 }
 
 func (m Meta) String() string {
