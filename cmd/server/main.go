@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alecthomas/kong"
 	grpchandler "github.com/k1nky/gophkeeper/internal/adapter/grpc"
 	httphandler "github.com/k1nky/gophkeeper/internal/adapter/http"
 	"github.com/k1nky/gophkeeper/internal/adapter/store"
@@ -52,31 +53,37 @@ func newGRPCServer(auth *auth.Service, l *logger.Logger) *grpc.Server {
 }
 
 func main() {
-	l := logger.New()
-	l.SetLevel("debug")
-	store := store.New(bolt.New("/tmp/server-meta.db"), filestore.New("/tmp/server-vault"))
-	auth := auth.New("secret", time.Hour*175200, store, l)
-	keeper := keeper.New(store, l)
-	hh := httphandler.New(auth, keeper, l)
-	gh := grpchandler.New(auth, keeper, l)
-	grpcServer := newGRPCServer(auth, l)
-	pb.RegisterKeeperServer(grpcServer, gh)
 
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	err := store.Open(ctx)
-	if err != nil {
-		l.Errorf("could not open storage: %s", err)
+
+	log := logger.New()
+
+	kong.Parse(&cli)
+	if cli.Debug {
+		log.SetLevel("debug")
+	}
+	store := store.New(bolt.New(cli.MetaStoreDSN), filestore.New(cli.ObjectStoreDSN))
+	if err := store.Open(ctx); err != nil {
+		log.Errorf("could not open storage: %s", err)
 		os.Exit(1)
+
 	}
 	defer store.Close()
+	auth := auth.New(cli.Secret, time.Hour*24, store, log)
+	keeper := keeper.New(store, log)
+	hh := httphandler.New(auth, keeper, log)
+	gh := grpchandler.New(auth, keeper, log)
+	grpcServer := newGRPCServer(auth, log)
+	pb.RegisterKeeperServer(grpcServer, gh)
+
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    cli.Listen,
 		Handler: h2c.NewHandler(newMux(grpcServer, hh), &http2.Server{}),
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
-				l.Errorf("unexpected server closing: %v", err)
+				log.Errorf("unexpected server closing: %v", err)
 			}
 		}
 	}()

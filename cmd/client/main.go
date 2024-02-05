@@ -65,9 +65,8 @@ func main() {
 		client: client,
 		sync:   sync,
 		log:    log,
+		secret: cli.Secret,
 	}); err != nil {
 		log.Errorf("command: %s", err)
 	}
-
-	// <-ctx.Done()
 }

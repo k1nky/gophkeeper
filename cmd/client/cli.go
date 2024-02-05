@@ -20,6 +20,7 @@ type Context struct {
 	sync   *sync.Service
 	client *gophkeeper.Adapter
 	log    *logger.Logger
+	secret string
 }
 
 type LsCmd struct {
@@ -27,7 +28,7 @@ type LsCmd struct {
 }
 
 type PutCmd struct {
-	Type  string `required:"" name:"type" enum:"text,file,login" default:"text"`
+	Type  string `required:"" name:"type" enum:"text,file,login,card" default:"text"`
 	Value string `arg:"" name:"value" help:""`
 	Alias string `optional:"" name:"alias" help:"Secret entry alias."`
 }
@@ -50,6 +51,7 @@ type PullCmd struct {
 
 type remoteVaultFlag string
 
+// TODO: delete secret
 var cli struct {
 	Debug          bool            `optional:"" name:"debug" env:"DEBUG" help:"Enable debug mode."`
 	RemoteVault    remoteVaultFlag `optional:"" name:"remote-vault" env:"REMOTE_VAULT"`
@@ -57,7 +59,7 @@ var cli struct {
 	ObjectStoreDSN string          `optional:"" name:"object-store-dsn" env:"OBJECT_STORE_DSN" default:"/tmp/client-vault"`
 	User           string          `optional:"" name:"remote-user" env:"REMOTE_VAULT_USER"`
 	Password       string          `optional:"" name:"remote-password" env:"REMOTE_VAULT_PASSWORD"`
-	Secret         string          `optional:"" name:"secret" env:"VAULT_SECRET"`
+	Secret         string          `optional:"" name:"secret" env:"VAULT_SECRET" default:"secret"`
 	Ls             LsCmd           `cmd:"" help:"List secrects from local or remote storage."`
 	Put            PutCmd          `cmd:"" help:"Put secrect to local storage."`
 	Push           PushCmd         `cmd:"" help:"Push secrect to remote storage."`
@@ -112,9 +114,26 @@ func (c *PutCmd) Run(ctx *Context) error {
 		}
 		m.Type = vault.TypeLoginPassword
 		value = vault.NewBytesBuffer(b)
+	case "card":
+		cc := &vault.CreditCard{}
+		cc.Prompt()
+		b, err := cc.Bytes()
+		if err != nil {
+			return err
+		}
+		m.Type = vault.TypeCreditCard
+		value = vault.NewBytesBuffer(b)
+	case "file":
+		if f, err := os.OpenFile(c.Value, os.O_RDONLY, 0660); err != nil {
+			return err
+		} else {
+			defer f.Close()
+			value = f
+		}
+		m.Type = vault.TypeFile
 	}
 	// TODO: вектор инициализации можно хранить в мета-данных
-	enc, _ := crypto.NewEncryptReader("secret", value, nil)
+	enc, _ := crypto.NewEncryptReader(ctx.secret, value, nil)
 	data := vault.NewDataReader(enc)
 	meta, err := ctx.keeper.PutSecret(ctx.ctx, m, data)
 	fmt.Println(meta.String())
@@ -153,7 +172,7 @@ func (c *ShCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	dec, _ := crypto.NewDecryptReader("secret", data, nil)
+	dec, _ := crypto.NewDecryptReader(ctx.secret, data, nil)
 	defer data.Close()
 	_, err = io.Copy(os.Stdout, dec)
 	return err
