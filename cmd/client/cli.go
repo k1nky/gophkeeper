@@ -9,6 +9,7 @@ import (
 	"github.com/k1nky/gophkeeper/internal/adapter/gophkeeper"
 	"github.com/k1nky/gophkeeper/internal/crypto"
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
+	"github.com/k1nky/gophkeeper/internal/logger"
 	"github.com/k1nky/gophkeeper/internal/service/keeper"
 	"github.com/k1nky/gophkeeper/internal/service/sync"
 )
@@ -18,6 +19,7 @@ type Context struct {
 	ctx    context.Context
 	sync   *sync.Service
 	client *gophkeeper.Adapter
+	log    *logger.Logger
 }
 
 type LsCmd struct {
@@ -65,7 +67,8 @@ var cli struct {
 
 func (c *PushCmd) Run(ctx *Context) error {
 	if c.All {
-		_, err := ctx.sync.PullAll(ctx.ctx)
+		list, err := ctx.sync.PullAll(ctx.ctx)
+		fmt.Printf("PULLED:\n %s", list)
 		return err
 	}
 	meta, err := ctx.keeper.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))

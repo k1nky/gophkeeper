@@ -64,6 +64,7 @@ func main() {
 		ctx:    ctx,
 		client: client,
 		sync:   sync,
+		log:    log,
 	}); err != nil {
 		log.Errorf("command: %s", err)
 	}

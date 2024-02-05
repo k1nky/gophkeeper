@@ -9,26 +9,41 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+func (bs *BoltStorage) IsExist(ctx context.Context, meta vault.Meta) bool {
+	if m, err := bs.GetMetaByID(ctx, meta.ID, meta.UserID); err == nil && m != nil {
+		return true
+	}
+	if m, err := bs.GetMetaByAlias(ctx, meta.Alias, meta.UserID); err == nil && m != nil {
+		return true
+	}
+	return false
+}
+
 // NewMeta добавляет новую запись мета-данных секрета. Возвращает добавленный элемент.
-func (bs *BoltStorage) NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, error) {
+func (bs *BoltStorage) NewMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
+	if len(meta.ID) == 0 {
+		return nil, vault.ErrEmptyMetaID
+	}
+	if bs.IsExist(ctx, meta) {
+		return nil, vault.ErrDuplicate
+	}
 	err := bs.DB.Update(func(tx *bolt.Tx) error {
 
 		mb := tx.Bucket(tb("meta"))
 		// группируем мета-данные по пользователям
-		umb, err := mb.CreateBucketIfNotExists(tb(fmt.Sprintf("%d", m.UserID)))
+		umb, err := mb.CreateBucketIfNotExists(tb(fmt.Sprintf("%d", meta.UserID)))
 		if err != nil {
 			return err
 		}
-		value, err := serialize(m)
+		value, err := serialize(meta)
 		if err != nil {
 			return err
 		}
 
-		// TODO: проверка если такой элемент с ID уже существует
-		return umb.Put(tb(string(m.ID)), value)
+		return umb.Put(tb(string(meta.ID)), value)
 	})
 	if err == nil {
-		return &m, nil
+		return &meta, nil
 	}
 	return nil, err
 }

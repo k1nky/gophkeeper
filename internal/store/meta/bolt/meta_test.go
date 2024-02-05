@@ -39,6 +39,36 @@ func (suite *metaTestSuite) TestNewMeta() {
 	suite.Assert().Equal(m, *got)
 }
 
+func (suite *metaTestSuite) TestNewMetaEmptyID() {
+	m := vault.Meta{
+		UserID: 1,
+		Extra:  "some extra",
+		ID:     "",
+	}
+	got, err := suite.bs.NewMeta(context.TODO(), m)
+	suite.Assert().ErrorIs(err, vault.ErrEmptyMetaID)
+	suite.Assert().Nil(got)
+}
+
+func (suite *metaTestSuite) TestNewMetaAlreadyExists() {
+	ctx := context.Background()
+	_, err := suite.bs.NewMeta(ctx, vault.Meta{
+		UserID: 1,
+		ID:     "1_100",
+		Alias:  "",
+	})
+	suite.NoError(err)
+
+	m := vault.Meta{
+		UserID: 1,
+		Extra:  "some extra",
+		ID:     "1_100",
+	}
+	got, err := suite.bs.NewMeta(context.TODO(), m)
+	suite.Assert().ErrorIs(err, vault.ErrDuplicate)
+	suite.Assert().Nil(got)
+}
+
 func (suite *metaTestSuite) TestGetMetaByIDNotExists() {
 	m, err := suite.bs.GetMetaByID(context.TODO(), vault.MetaID("not_exist"), 0)
 	suite.Assert().NoError(err)
@@ -97,7 +127,7 @@ func (suite *metaTestSuite) TestGetMetaByAlias() {
 }
 
 func (suite *metaTestSuite) TestListMetaByUser() {
-	expteced := vault.List{
+	expected := vault.List{
 		{
 			UserID: 1,
 			Extra:  "some extra",
@@ -109,7 +139,7 @@ func (suite *metaTestSuite) TestListMetaByUser() {
 			ID:     vault.NewMetaID(),
 		},
 	}
-	for _, m := range expteced {
+	for _, m := range expected {
 		_, err := suite.bs.NewMeta(context.TODO(), m)
 		suite.Assert().NoError(err)
 
@@ -122,5 +152,29 @@ func (suite *metaTestSuite) TestListMetaByUser() {
 	suite.Assert().NoError(err)
 	list, err := suite.bs.ListMetaByUser(context.TODO(), 1)
 	suite.Assert().NoError(err)
-	suite.Assert().ElementsMatch(expteced, list)
+	suite.Assert().ElementsMatch(expected, list)
+}
+
+func (suite *metaTestSuite) TestIsExist() {
+	ctx := context.Background()
+	_, err := suite.bs.NewMeta(ctx, vault.Meta{
+		UserID: 1,
+		ID:     "1_100",
+		Alias:  "",
+	})
+	suite.NoError(err)
+	_, err = suite.bs.NewMeta(ctx, vault.Meta{
+		UserID: 1,
+		ID:     "1_101",
+		Alias:  "alias#101",
+	})
+	suite.NoError(err)
+
+	suite.False(suite.bs.IsExist(ctx, vault.Meta{UserID: 2, ID: "2_200"}))
+	suite.False(suite.bs.IsExist(ctx, vault.Meta{UserID: 2, ID: "1_100"}))
+	suite.False(suite.bs.IsExist(ctx, vault.Meta{UserID: 1, ID: "2_200"}))
+	suite.False(suite.bs.IsExist(ctx, vault.Meta{UserID: 1, ID: ""}))
+	suite.True(suite.bs.IsExist(ctx, vault.Meta{UserID: 1, ID: "1_100"}))
+	suite.True(suite.bs.IsExist(ctx, vault.Meta{UserID: 1, ID: "1_101"}))
+	suite.True(suite.bs.IsExist(ctx, vault.Meta{UserID: 1, ID: "1_103", Alias: "alias#101"}))
 }
