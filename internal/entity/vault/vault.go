@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/k1nky/gophkeeper/internal/entity/user"
 )
@@ -27,6 +28,31 @@ type DataReader struct {
 	// буферизированный читатель, позволяет читать исходные данные через буфер
 	reader *bufio.Reader
 }
+
+type MetaID string
+
+// Meta мета-данные секрета.
+type Meta struct {
+	// Псевдоним
+	Alias string
+	// Идентификатор данных секрета
+	DataID string
+	// Поле для дополнительных данных
+	Extra string
+	// ИД секрета
+	ID MetaID
+	// Метка удаления, если true, то секрет можно считать удаленным
+	IsDeleted bool
+	// Тип секрета
+	Type SecretType
+	// Временная метка версии секрета. Временная зона должна быть UTC.
+	UpdatedAt int64
+	// ИД пользователя владельца секрета
+	UserID user.ID
+}
+
+// Список мета-данных секретов.
+type List []Meta
 
 func NewBytesBuffer(p []byte) *BytesBuffer {
 	return &BytesBuffer{
@@ -57,18 +83,7 @@ func (d *DataReader) Close() error {
 	return d.origin.Close()
 }
 
-type MetaID string
-
-type Meta struct {
-	UserID user.ID
-	ID     MetaID
-	Alias  string
-	Type   SecretType
-	Extra  string
-}
-
-type List []Meta
-
+// NewMetaID возвращает новый уникальный ИД секрета.
 func NewMetaID() MetaID {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -78,7 +93,17 @@ func NewMetaID() MetaID {
 }
 
 func (m Meta) String() string {
-	return fmt.Sprintf("%s %s %s", m.ID, m.Alias, m.Type)
+	return fmt.Sprintf("%s %s %s %s", m.ID, m.Alias, m.Type, m.UpdateAtLocalTime())
+}
+
+// CanUpdated возвращает true если секрет может быть обновлен секретом `update`.
+func (m Meta) CanUpdated(update Meta) bool {
+	return m.ID == update.ID && update.UpdatedAt > m.UpdatedAt
+}
+
+// UpdateAtLocalTime возвращает временную метку секрета как тип Time.
+func (m Meta) UpdateAtLocalTime() time.Time {
+	return time.Unix(m.UpdatedAt, 0)
 }
 
 func (l List) String() string {
@@ -87,4 +112,9 @@ func (l List) String() string {
 		s.WriteString(v.String() + "\n")
 	}
 	return s.String()
+}
+
+// Возвращает текущее время в unix формате в зоне UTC.
+func Now() int64 {
+	return time.Now().UTC().Unix()
 }
