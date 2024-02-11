@@ -111,14 +111,7 @@ func (bs *BoltStorage) ListMetaByUser(ctx context.Context, userID user.ID) (vaul
 	return list, nil
 }
 
-// NewMeta добавляет новую запись мета-данных секрета. Возвращает добавленный элемент.
-func (bs *BoltStorage) NewMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
-	if len(meta.ID) == 0 {
-		return nil, vault.ErrEmptyMetaID
-	}
-	if bs.IsExist(ctx, meta) {
-		return nil, vault.ErrDuplicate
-	}
+func (bs *BoltStorage) putMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
 	err := bs.DB.Update(func(tx *bolt.Tx) error {
 
 		mb := tx.Bucket(tb("meta"))
@@ -132,10 +125,52 @@ func (bs *BoltStorage) NewMeta(ctx context.Context, meta vault.Meta) (*vault.Met
 			return err
 		}
 
-		return umb.Put(tb(string(meta.ID)), value)
+		return umb.Put([]byte(meta.ID), value)
 	})
 	if err == nil {
 		return &meta, nil
 	}
 	return nil, err
+}
+
+// NewMeta добавляет новую запись мета-данных секрета. Возвращает добавленный элемент.
+func (bs *BoltStorage) NewMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
+	if len(meta.ID) == 0 {
+		return nil, vault.ErrEmptyMetaID
+	}
+	if bs.IsExist(ctx, meta) {
+		return nil, vault.ErrDuplicate
+	}
+	return bs.putMeta(ctx, meta)
+}
+
+// UpdateMeta обновляет мета-данные секрета. Возвращает обновленнный элемент.
+func (bs *BoltStorage) UpdateMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
+	if len(meta.ID) == 0 {
+		return nil, vault.ErrEmptyMetaID
+	}
+	if !bs.IsExist(ctx, meta) {
+		return nil, vault.ErrMetaNotExists
+	}
+	return bs.putMeta(ctx, meta)
+}
+
+// DeleteMeta удаляет мета-данные секрета.
+func (bs *BoltStorage) DeleteMeta(ctx context.Context, meta vault.Meta) error {
+	if len(meta.ID) == 0 {
+		return nil
+	}
+	if !bs.IsExist(ctx, meta) {
+		return nil
+	}
+	err := bs.DB.Update(func(tx *bolt.Tx) error {
+
+		mb := tx.Bucket(tb("meta"))
+		umb := mb.Bucket(tb(fmt.Sprintf("%d", meta.UserID)))
+		if umb == nil {
+			return nil
+		}
+		return umb.Delete([]byte(meta.ID))
+	})
+	return err
 }
