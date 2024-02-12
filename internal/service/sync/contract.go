@@ -23,8 +23,7 @@ type client interface {
 	PutSecret(ctx context.Context, meta vault.Meta, r io.Reader) (*vault.Meta, error)
 }
 
-// TODO: unused
-// type logger interface {
-// 	Errorf(template string, args ...interface{})
-// 	Debugf(template string, args ...interface{})
-// }
+type logger interface {
+	Errorf(template string, args ...interface{})
+	Debugf(template string, args ...interface{})
+}

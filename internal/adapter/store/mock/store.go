@@ -144,6 +144,20 @@ func (mr *MockMetaStoreMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockMetaStore)(nil).Close))
 }
 
+// DeleteMeta mocks base method.
+func (m *MockMetaStore) DeleteMeta(ctx context.Context, meta vault.Meta) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteMeta", ctx, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteMeta indicates an expected call of DeleteMeta.
+func (mr *MockMetaStoreMockRecorder) DeleteMeta(ctx, meta interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMeta", reflect.TypeOf((*MockMetaStore)(nil).DeleteMeta), ctx, meta)
+}
+
 // GetMetaByAlias mocks base method.
 func (m *MockMetaStore) GetMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error) {
 	m.ctrl.T.Helper()
@@ -248,6 +262,21 @@ func (mr *MockMetaStoreMockRecorder) Open(ctx interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Open", reflect.TypeOf((*MockMetaStore)(nil).Open), ctx)
 }
 
+// UpdateMeta mocks base method.
+func (m *MockMetaStore) UpdateMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMeta", ctx, meta)
+	ret0, _ := ret[0].(*vault.Meta)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateMeta indicates an expected call of UpdateMeta.
+func (mr *MockMetaStoreMockRecorder) UpdateMeta(ctx, meta interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeta", reflect.TypeOf((*MockMetaStore)(nil).UpdateMeta), ctx, meta)
+}
+
 // MockStore is a mock of Store interface.
 type MockStore struct {
 	ctrl     *gomock.Controller
@@ -283,6 +312,20 @@ func (m *MockStore) Close() error {
 func (mr *MockStoreMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStore)(nil).Close))
+}
+
+// DeleteSecret mocks base method.
+func (m *MockStore) DeleteSecret(ctx context.Context, meta vault.Meta) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSecret", ctx, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteSecret indicates an expected call of DeleteSecret.
+func (mr *MockStoreMockRecorder) DeleteSecret(ctx, meta interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecret", reflect.TypeOf((*MockStore)(nil).DeleteSecret), ctx, meta)
 }
 
 // GetSecretData mocks base method.
@@ -402,4 +445,34 @@ func (m *MockStore) PutSecret(ctx context.Context, meta vault.Meta, data *vault.
 func (mr *MockStoreMockRecorder) PutSecret(ctx, meta, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutSecret", reflect.TypeOf((*MockStore)(nil).PutSecret), ctx, meta, data)
+}
+
+// UpdateSecret mocks base method.
+func (m *MockStore) UpdateSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSecret", ctx, meta, data)
+	ret0, _ := ret[0].(*vault.Meta)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateSecret indicates an expected call of UpdateSecret.
+func (mr *MockStoreMockRecorder) UpdateSecret(ctx, meta, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecret", reflect.TypeOf((*MockStore)(nil).UpdateSecret), ctx, meta, data)
+}
+
+// UpdateSecretMeta mocks base method.
+func (m *MockStore) UpdateSecretMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSecretMeta", ctx, meta)
+	ret0, _ := ret[0].(*vault.Meta)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateSecretMeta indicates an expected call of UpdateSecretMeta.
+func (mr *MockStoreMockRecorder) UpdateSecretMeta(ctx, meta interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecretMeta", reflect.TypeOf((*MockStore)(nil).UpdateSecretMeta), ctx, meta)
 }

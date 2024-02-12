@@ -8,4 +8,5 @@ var (
 	ErrEmptyMetaID     = errors.New("meta id must be non empty")
 	ErrMetaNotExists   = errors.New("meta does not exist")
 	ErrConflictVersion = errors.New("conflict detected, secret could not be updated")
+	ErrNothingToUpdate = errors.New("nothing to update")
 )

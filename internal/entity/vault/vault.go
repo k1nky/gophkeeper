@@ -45,8 +45,8 @@ type Meta struct {
 	IsDeleted bool
 	// Тип секрета
 	Type SecretType
-	// Временная метка версии секрета. Временная зона должна быть UTC.
-	UpdatedAt int64
+	// Версия секрета. Алгоритм повышения версии должен работать с учетом того, что клиенты могут быть на разных хостах.
+	Revision int64
 	// ИД пользователя владельца секрета
 	UserID user.ID
 }
@@ -93,17 +93,24 @@ func NewMetaID() MetaID {
 }
 
 func (m Meta) String() string {
-	return fmt.Sprintf("%s %s %s %s", m.ID, m.Alias, m.Type, m.UpdateAtLocalTime())
+	return fmt.Sprintf("%s %s %s %d", m.ID, m.Alias, m.Type, m.Revision)
 }
 
-// CanUpdated возвращает true если секрет может быть обновлен секретом `update`.
+// CanUpdated возвращает true если секрет может быть обновлен секретом update.
 func (m Meta) CanUpdated(update Meta) bool {
-	return m.ID == update.ID && update.UpdatedAt > m.UpdatedAt
+	return m.ID == update.ID && update.Revision > m.Revision
 }
 
-// UpdateAtLocalTime возвращает временную метку секрета как тип Time.
-func (m Meta) UpdateAtLocalTime() time.Time {
-	return time.Unix(m.UpdatedAt, 0)
+// Equal возвращает true если идентификаторы и версии m и target равны.
+func (m Meta) Equal(target Meta) bool {
+	return m.ID == target.ID && m.Revision == target.Revision
+}
+
+// NewRevision возвращает номер для новой версии секрета. Возможен конфликт, если несколько клиентов обновят секрет
+// с одним ИД с точностью до секунды. В рамках учебного проекта, данным фактом считаю можно пренебречь.
+func NewRevision() int64 {
+	// используем UTC чтобы не привязываться к верменной зоне клиента
+	return time.Now().UTC().Unix()
 }
 
 func (l List) String() string {
@@ -112,9 +119,4 @@ func (l List) String() string {
 		s.WriteString(v.String() + "\n")
 	}
 	return s.String()
-}
-
-// Возвращает текущее время в unix формате в зоне UTC.
-func Now() int64 {
-	return time.Now().UTC().Unix()
 }

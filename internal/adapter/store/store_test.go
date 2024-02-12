@@ -131,6 +131,7 @@ func (suite *adapterTestSuite) TestPutSecret() {
 	suite.ostore.EXPECT().Put(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 	newMeta, err := suite.a.PutSecret(ctx, m, d)
+	m.DataID = newMeta.DataID
 	suite.Assert().NoError(err)
 	suite.Assert().Equal(m, *newMeta)
 }
@@ -154,6 +155,7 @@ func (suite *adapterTestSuite) TestGetSecretData() {
 	metaID := vault.NewMetaID()
 
 	suite.ostore.EXPECT().Get(gomock.Any(), gomock.Any()).Return(vault.NewDataReader(vault.NewBytesBuffer(expected)), nil)
+	suite.mstore.EXPECT().GetMetaByID(gomock.Any(), gomock.Any(), gomock.Any()).Return(&vault.Meta{ID: metaID}, nil)
 
 	reader, err := suite.a.GetSecretData(ctx, metaID, 0)
 	suite.Assert().NoError(err)

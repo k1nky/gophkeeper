@@ -8,8 +8,6 @@ import (
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
 )
 
-// TODO: Access model
-
 // Service сервис хранения секретов. Во всех запросах текущий пользователей берется из контекста (user.NewContextWithClaims).
 // Если в контексте пользователь не опеределен, то будет использоваться "локальный" пользователй с ИД 0.
 // Если добавлять расширенную модель разграничения доступа, то в можно добавить дополнительный
@@ -68,9 +66,40 @@ func (s *Service) GetSecretMetaByAlias(ctx context.Context, alias string) (*vaul
 	return s.store.GetSecretMetaByAlias(ctx, alias, uid)
 }
 
-// PutSecret добавляет новый секрет с мета-данными meta и данным в data.
+// PutSecret добавляет или обновляет секрет с мета-данными meta и данным в data.
 func (s *Service) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
-	return s.store.PutSecret(ctx, meta, data)
+	m, err := s.GetSecretMeta(ctx, meta.ID)
+	if err != nil {
+		return nil, err
+	}
+	// за правильность ведения версионирования должен отвечать потребитель сервиса Keeper,
+	// но если версия по какой-то причине не установлена - определим ее явно.
+	if meta.Revision == 0 {
+		meta.Revision = vault.NewRevision()
+	}
+	if m == nil {
+		// добавляем новый секрет
+		return s.store.PutSecret(ctx, meta, data)
+	}
+
+	// обновляем существующий
+	return s.store.UpdateSecret(ctx, meta, data)
+}
+
+// DeleteSecret удалет секрет с мета-данным meta. Фактически данный вызов ничего не удаляет,
+// а просто помечает что секрет должен быть удален.
+func (s *Service) DeleteSecret(ctx context.Context, meta vault.Meta) error {
+	m, err := s.GetSecretMeta(ctx, meta.ID)
+	if err != nil {
+		return nil
+	}
+	if m == nil {
+		return nil
+	}
+	meta.IsDeleted = true
+	meta.Revision = vault.NewRevision()
+	_, err = s.store.UpdateSecretMeta(ctx, meta)
+	return err
 }
 
 // ListSecretsByUser возвращает список секретов. В списке перечисляются только мета-данные секретов.

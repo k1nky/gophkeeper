@@ -31,6 +31,7 @@ type PutCmd struct {
 	Type  string `required:"" name:"type" enum:"text,file,login,card" default:"text"`
 	Value string `arg:"" name:"value" help:""`
 	Alias string `optional:"" name:"alias" help:"Secret entry alias."`
+	Id    string `optional:"" name:"id" help:"Secret entry ID to show."`
 }
 
 type ShCmd struct {
@@ -42,11 +43,13 @@ type PushCmd struct {
 	Id    string `optional:"" name:"id" help:"Secret entry ID to push."`
 	Alias string `optional:"" name:"alias" help:"Secret entry alias to push."`
 	All   bool   `optional:"" name:"all" help:"Push all secrets from local storage."`
+	Force bool   `optional:"" name:"force" help:"Push all secrets from local storage."`
 }
 
 type PullCmd struct {
-	Id  string `optional:"" name:"id" help:"Secret entry ID to pull."`
-	All bool   `optional:"" name:"all" help:"Pull all secrets from remote storage."`
+	Id    string `optional:"" name:"id" help:"Secret entry ID to pull."`
+	All   bool   `optional:"" name:"all" help:"Pull all secrets from remote storage."`
+	Force bool   `optional:"" name:"force" help:"Push all secrets from local storage."`
 }
 
 type remoteVaultFlag string
@@ -59,6 +62,7 @@ var cli struct {
 	ObjectStoreDSN string          `optional:"" name:"object-store-dsn" env:"OBJECT_STORE_DSN" default:"/tmp/client-vault"`
 	User           string          `optional:"" name:"remote-user" env:"REMOTE_VAULT_USER"`
 	Password       string          `optional:"" name:"remote-password" env:"REMOTE_VAULT_PASSWORD"`
+	Token          string          `optional:"" name:"remote-token" env:"REMOTE_VAULT_TOKEN"`
 	Secret         string          `optional:"" name:"secret" env:"VAULT_SECRET" default:"secret"`
 	Ls             LsCmd           `cmd:"" help:"List secrects from local or remote storage."`
 	Put            PutCmd          `cmd:"" help:"Put secrect to local storage."`
@@ -69,15 +73,13 @@ var cli struct {
 
 func (c *PushCmd) Run(ctx *Context) error {
 	if c.All {
-		list, err := ctx.sync.PullAll(ctx.ctx)
-		fmt.Printf("PULLED:\n %s", list)
-		return err
+		return ctx.sync.PushAll(ctx.ctx, c.Force)
 	}
 	meta, err := ctx.keeper.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))
 	if err != nil {
 		return err
 	}
-	_, err = ctx.sync.Push(ctx.ctx, *meta)
+	_, err = ctx.sync.Push(ctx.ctx, *meta, c.Force)
 	return err
 }
 
@@ -95,12 +97,37 @@ func (c *LsCmd) Run(ctx *Context) error {
 	return err
 }
 
+func getMeta(ctx *Context, id vault.MetaID, alias string) (*vault.Meta, error) {
+	var (
+		meta *vault.Meta
+		err  error
+	)
+	if len(id) != 0 {
+		meta, err = ctx.keeper.GetSecretMeta(ctx.ctx, vault.MetaID(id))
+	} else {
+		meta, err = ctx.keeper.GetSecretMetaByAlias(ctx.ctx, alias)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return meta, err
+}
+
 func (c *PutCmd) Run(ctx *Context) error {
 	var value io.ReadCloser
 	m := vault.Meta{
-		ID:    vault.NewMetaID(),
-		Alias: c.Alias,
+		ID:       vault.NewMetaID(),
+		Alias:    c.Alias,
+		Revision: vault.NewRevision(),
 	}
+
+	if mm, _ := getMeta(ctx, vault.MetaID(c.Id), c.Alias); mm != nil {
+		m.ID = mm.ID
+		if len(m.Alias) == 0 {
+			m.Alias = mm.Alias
+		}
+	}
+
 	switch c.Type {
 	case "text":
 		value = vault.NewBytesBuffer([]byte(c.Value))
@@ -142,14 +169,13 @@ func (c *PutCmd) Run(ctx *Context) error {
 
 func (c *PullCmd) Run(ctx *Context) error {
 	if c.All {
-		_, err := ctx.sync.PullAll(ctx.ctx)
-		return err
+		return ctx.sync.PullAll(ctx.ctx, c.Force)
 	}
 	meta, err := ctx.client.GetSecretMeta(ctx.ctx, vault.MetaID(c.Id))
 	if err != nil {
 		return err
 	}
-	newMeta, err := ctx.sync.Pull(ctx.ctx, *meta)
+	newMeta, err := ctx.sync.Pull(ctx.ctx, *meta, c.Force)
 	fmt.Println(newMeta.String())
 	return err
 }

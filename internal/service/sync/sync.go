@@ -1,27 +1,49 @@
+// Пакет sync предоставляет инструменты для синхронизации секретов с удаленным сервером.
 package sync
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"github.com/k1nky/gophkeeper/internal/entity/vault"
 	"golang.org/x/sync/errgroup"
 )
 
+// Служба синхронизации секретов.
 type Service struct {
 	client  client
 	storage storage
+	log     logger
 }
 
-func New(client client, storage storage) *Service {
+// New возвращает новый экземпляр сервиса.
+func New(client client, storage storage, log logger) *Service {
 	return &Service{
 		client:  client,
 		storage: storage,
+		log:     log,
 	}
 }
 
-func (s *Service) Pull(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
+// Pull забирает секрет с мета-данным meta из удаленного хранилища в локальное.
+func (s *Service) Pull(ctx context.Context, meta vault.Meta, force bool) (*vault.Meta, error) {
 	var newMeta *vault.Meta
+
+	m, err := s.storage.GetSecretMeta(ctx, meta.ID)
+	if err != nil {
+		return nil, err
+	}
+	if m != nil {
+		if m.Equal(meta) {
+			// данные секрета уже актуальны
+			return nil, vault.ErrNothingToUpdate
+		}
+		if !m.CanUpdated(meta) && !force {
+			// конфликт версий
+			return nil, vault.ErrConflictVersion
+		}
+	}
 
 	g := new(errgroup.Group)
 	r, w := io.Pipe()
@@ -36,51 +58,70 @@ func (s *Service) Pull(ctx context.Context, meta vault.Meta) (*vault.Meta, error
 		newMeta = m
 		return err
 	})
-	err := g.Wait()
-	if err != nil {
+	if err := g.Wait(); err != nil {
 		newMeta = nil
 	}
 	return newMeta, nil
 }
 
-func (s *Service) PullAll(ctx context.Context) (vault.List, error) {
-	pulled := vault.List{}
+// PullAll забирает все секреты пользователя из удаленного хранилища в локальное.
+func (s *Service) PullAll(ctx context.Context, force bool) error {
 	list, err := s.client.ListSecrets(ctx)
 	if err != nil {
-		return pulled, err
+		return err
 	}
 	for _, v := range list {
-		m, err := s.Pull(ctx, v)
-		if err != nil {
-			return pulled, err
+		if _, err := s.Pull(ctx, v, force); err != nil {
+			if errors.Is(err, vault.ErrNothingToUpdate) {
+				s.log.Debugf("%s %s", err, v)
+			}
+			if errors.Is(err, vault.ErrConflictVersion) {
+				s.log.Errorf("%s %s", err, v)
+			}
+			continue
 		}
-		pulled = append(pulled, *m)
 	}
-	return pulled, nil
+	return nil
 }
 
-func (s *Service) Push(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
+// Push отправляет секрет из локального хранилища в удаленное.
+func (s *Service) Push(ctx context.Context, meta vault.Meta, force bool) (*vault.Meta, error) {
+
+	m, _ := s.client.GetSecretMeta(ctx, meta.ID)
+	if m != nil {
+		if meta.Equal(*m) {
+			return nil, vault.ErrNothingToUpdate
+		}
+		if !m.CanUpdated(meta) && !force {
+			return nil, vault.ErrConflictVersion
+		}
+	}
+
 	data, err := s.storage.GetSecretData(ctx, meta.ID)
 	if err != nil {
 		return nil, err
 	}
 	defer data.Close()
-	m, err := s.client.PutSecret(ctx, meta, data)
-	return m, err
+	return s.client.PutSecret(ctx, meta, data)
 }
 
-func (s *Service) PushAll(ctx context.Context) (vault.List, error) {
-	pushed := vault.List{}
+// PushAll отправляет все секреты пользователя из локального хранилища в удаленное.
+func (s *Service) PushAll(ctx context.Context, force bool) error {
 	list, err := s.storage.ListSecretsByUser(ctx)
 	if err != nil {
-		return pushed, err
+		s.log.Errorf("push: %s", err)
+		return err
 	}
 	for _, v := range list {
-		m, err := s.Push(ctx, v)
-		if err != nil {
-			return pushed, err
+		if _, err := s.Push(ctx, v, force); err != nil {
+			if errors.Is(err, vault.ErrNothingToUpdate) {
+				s.log.Debugf("%s %s", err, v)
+			}
+			if errors.Is(err, vault.ErrConflictVersion) {
+				s.log.Errorf("%s %s", err, v)
+			}
+			continue
 		}
-		pushed = append(pushed, *m)
 	}
-	return pushed, nil
+	return nil
 }

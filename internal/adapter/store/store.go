@@ -42,8 +42,14 @@ func New(mstore MetaStore, ostore ObjectStore) *Adapter {
 // GetSecretData возвращает данные секрета пользователя userID с ид metaID. Обязательно нужно следить за своевременным
 // закрытием полученных данных.
 func (a *Adapter) GetSecretData(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.DataReader, error) {
-	key := a.buildDataKey(userID, metaID)
-	return a.ostore.Get(ctx, key)
+	meta, err := a.GetSecretMetaByID(ctx, metaID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if meta == nil {
+		return nil, nil
+	}
+	return a.ostore.Get(ctx, meta.DataID)
 }
 
 // GetSecretMetaByID возвращает мета-данные секрета с ид metaID пользователя userID.
@@ -75,7 +81,7 @@ func (a *Adapter) GetUserByLogin(ctx context.Context, login string) (*user.User,
 	return a.mstore.GetUserByLogin(ctx, login)
 }
 
-// ListSecretsByUser возвращает списо мета-данных секретов пользователя userID.
+// ListSecretsByUser возвращает список мета-данных секретов пользователя userID.
 func (a *Adapter) ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error) {
 	return a.mstore.ListMetaByUser(ctx, userID)
 }
@@ -108,20 +114,57 @@ func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, data *vault.Da
 	if len(meta.ID) == 0 {
 		meta.ID = vault.NewMetaID()
 	}
-	key := a.buildDataKey(meta.UserID, meta.ID)
+	meta.DataID = a.buildDataKey(meta)
 	// сначала пробуем записать данные секрета в хранилище
-	if err := a.ostore.Put(ctx, key, data); err != nil {
+	if err := a.ostore.Put(ctx, meta.DataID, data); err != nil {
 		return nil, err
 	}
 	// потом записываем мета-данные
 	if _, err := a.mstore.NewMeta(ctx, meta); err != nil {
 		// если их записать не удалось, то удаляем секрет
-		a.ostore.Delete(ctx, key)
+		a.ostore.Delete(ctx, meta.DataID)
 		return nil, err
 	}
 	return &meta, nil
 }
 
-func (a *Adapter) buildDataKey(userID user.ID, metaID vault.MetaID) string {
-	return fmt.Sprintf("%d-%s", userID, metaID)
+func (a *Adapter) UpdateSecretMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
+	return a.mstore.UpdateMeta(ctx, meta)
+}
+
+func (a *Adapter) UpdateSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
+	cm, err := a.GetSecretMetaByID(ctx, meta.ID, meta.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if cm == nil {
+		return nil, vault.ErrMetaNotExists
+	}
+	meta.DataID = a.buildDataKey(meta)
+	// сначала пробуем записать данные секрета в хранилище
+	if err := a.ostore.Put(ctx, meta.DataID, data); err != nil {
+		return nil, err
+	}
+	// потом записываем мета-данные
+	if _, err := a.mstore.UpdateMeta(ctx, meta); err != nil {
+		// если их записать не удалось, то удаляем секрет
+		a.ostore.Delete(ctx, meta.DataID)
+		return nil, err
+	}
+	a.ostore.Delete(ctx, cm.DataID)
+	return &meta, nil
+}
+
+func (a *Adapter) DeleteSecret(ctx context.Context, meta vault.Meta) error {
+	if err := a.mstore.DeleteMeta(ctx, meta); err != nil {
+		return err
+	}
+	if err := a.ostore.Delete(ctx, meta.DataID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *Adapter) buildDataKey(m vault.Meta) string {
+	return fmt.Sprintf("%d-%s-%d", m.UserID, m.ID, m.Revision)
 }

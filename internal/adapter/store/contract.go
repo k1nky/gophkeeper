@@ -18,14 +18,16 @@ type ObjectStore interface {
 
 //go:generate mockgen -source=contract.go -destination=mock/store.go -package=mock MetaStore
 type MetaStore interface {
-	GetUserByLogin(ctx context.Context, login string) (*user.User, error)
 	Close() error
+	DeleteMeta(ctx context.Context, meta vault.Meta) error
+	GetUserByLogin(ctx context.Context, login string) (*user.User, error)
 	NewUser(ctx context.Context, u user.User) (*user.User, error)
 	NewMeta(ctx context.Context, m vault.Meta) (*vault.Meta, error)
 	GetMetaByID(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error)
 	GetMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error)
 	ListMetaByUser(ctx context.Context, userID user.ID) (vault.List, error)
 	Open(ctx context.Context) (err error)
+	UpdateMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error)
 }
 
 type Store interface {
@@ -38,4 +40,7 @@ type Store interface {
 	GetSecretMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error)
 	ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error)
 	Close() error
+	DeleteSecret(ctx context.Context, meta vault.Meta) error
+	UpdateSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error)
+	UpdateSecretMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error)
 }

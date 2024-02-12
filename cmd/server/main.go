@@ -71,7 +71,7 @@ func main() {
 	defer store.Close()
 	auth := auth.New(cli.Secret, time.Hour*24, store, log)
 	keeper := keeper.New(store, log)
-	hh := httphandler.New(auth, keeper, log)
+	hh := httphandler.New(auth, log)
 	gh := grpchandler.New(auth, keeper, log)
 	grpcServer := newGRPCServer(auth, log)
 	pb.RegisterKeeperServer(grpcServer, gh)

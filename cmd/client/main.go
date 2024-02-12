@@ -17,15 +17,19 @@ import (
 	"github.com/k1nky/gophkeeper/internal/store/objects/filestore"
 )
 
-func newClient(ctx context.Context, url string, u user.User, l *logger.Logger) (*gophkeeper.Adapter, error) {
+func newClient(ctx context.Context, url string, u user.User, token string, l *logger.Logger) (*gophkeeper.Adapter, error) {
 	if len(url) == 0 {
 		return nil, nil
 	}
 	client := gophkeeper.New(url, "")
-	if cur, err := client.Login(ctx, u.Login, u.Password); err != nil {
-		return nil, err
+	if len(token) > 0 {
+		client.SetToken(token)
 	} else {
-		l.Debugf("log on as %s", cur.Login)
+		if cur, err := client.Login(ctx, u.Login, u.Password); err != nil {
+			return nil, err
+		} else {
+			l.Debugf("log on as %s", cur.Login)
+		}
 	}
 	if err := client.Open(ctx); err != nil {
 		return nil, err
@@ -45,7 +49,7 @@ func main() {
 	client, err := newClient(ctx, string(cli.RemoteVault), user.User{
 		Login:    cli.User,
 		Password: cli.Password,
-	}, log)
+	}, cli.Token, log)
 	if err != nil {
 		log.Errorf("connect to %s: %v", cli.RemoteVault, err)
 		os.Exit(1)
@@ -57,7 +61,7 @@ func main() {
 	}
 	defer store.Close()
 	keeper := keeper.New(store, log)
-	sync := sync.New(client, keeper)
+	sync := sync.New(client, keeper, log)
 
 	if err = cmd.Run(&Context{
 		keeper: keeper,

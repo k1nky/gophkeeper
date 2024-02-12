@@ -42,26 +42,48 @@ func New(endpoint string, path string) *Adapter {
 	}
 }
 
+func NewPBMeta(m vault.Meta) *pb.Meta {
+	return &pb.Meta{
+		Id:        string(m.ID),
+		Extra:     m.Extra,
+		Alias:     m.Alias,
+		Type:      int32(m.Type),
+		Revision:  m.Revision,
+		IsDeleted: m.IsDeleted,
+	}
+}
+
+func NewMeta(pbm *pb.Meta) *vault.Meta {
+	return &vault.Meta{
+		Alias:     pbm.Alias,
+		Extra:     pbm.Extra,
+		ID:        vault.MetaID(pbm.Id),
+		Type:      vault.SecretType(pbm.Type),
+		Revision:  pbm.Revision,
+		IsDeleted: pbm.IsDeleted,
+	}
+}
+
 func (a *Adapter) Open(ctx context.Context) error {
-	// var retryPolicy = fmt.Sprintf(`{
-	// 	"methodConfig": [{
-	// 		"name": [{"service": ""}],
-	// 		"waitForReady": true,
-	// 		"retryPolicy": {
-	// 			"MaxAttempts": %d,
-	// 			"InitialBackoff": ".01s",
-	// 			"MaxBackoff": ".01s",
-	// 			"BackoffMultiplier": 1.0,
-	// 			"RetryableStatusCodes": [ "UNAVAILABLE" ]
-	// 		}
-	// 	}]
-	// }`, MaxAttempts)
+	var retryPolicy = fmt.Sprintf(`{
+		"methodConfig": [{
+			"name": [{"service": ""}],
+			"waitForReady": true,
+			"retryPolicy": {
+				"MaxAttempts": %d,
+				"InitialBackoff": ".01s",
+				"MaxBackoff": ".01s",
+				"BackoffMultiplier": 1.0,
+				"RetryableStatusCodes": [ "UNAVAILABLE" ]
+			}
+		}]
+	}`, MaxAttempts)
 	u, _ := url.Parse(a.Endpoint)
 	unaryInterceptors := []grpc.UnaryClientInterceptor{a.AuthorizationUnaryInterceptor()}
 	streamInterceptors := []grpc.StreamClientInterceptor{a.AuthorizationStreamInterceptor()}
 	conn, err := grpc.Dial(fmt.Sprintf(u.Host),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		// grpc.WithDefaultServiceConfig(retryPolicy),
+		grpc.WithDefaultServiceConfig(retryPolicy),
 		grpc.WithChainStreamInterceptor(streamInterceptors...),
 		grpc.WithChainUnaryInterceptor(unaryInterceptors...),
 	)
@@ -70,6 +92,10 @@ func (a *Adapter) Open(ctx context.Context) error {
 	}
 	a.cc = conn
 	return nil
+}
+
+func (a *Adapter) SetToken(token string) {
+	a.token = token
 }
 
 func (a *Adapter) Login(ctx context.Context, username string, password string) (*user.PrivateClaims, error) {
@@ -111,11 +137,7 @@ func (a *Adapter) ListSecrets(ctx context.Context) (vault.List, error) {
 	}
 	list := make(vault.List, 0)
 	for _, v := range resp.Meta {
-		list = append(list, vault.Meta{
-			Extra: v.Extra,
-			Alias: v.Alias,
-			ID:    vault.MetaID(v.Id),
-		})
+		list = append(list, *NewMeta(v))
 	}
 	return list, nil
 }
@@ -130,11 +152,7 @@ func (a *Adapter) GetSecretMeta(ctx context.Context, id vault.MetaID) (*vault.Me
 	if err != nil {
 		return nil, err
 	}
-	return &vault.Meta{
-		ID:    vault.MetaID(meta.Id),
-		Alias: meta.Alias,
-		Extra: meta.Extra,
-	}, nil
+	return NewMeta(meta), nil
 }
 
 func (a *Adapter) GetSecretMetaByAlias(ctx context.Context, alias string) (*vault.Meta, error) {
@@ -147,11 +165,7 @@ func (a *Adapter) GetSecretMetaByAlias(ctx context.Context, alias string) (*vaul
 	if err != nil {
 		return nil, err
 	}
-	return &vault.Meta{
-		ID:    vault.MetaID(meta.Id),
-		Alias: meta.Alias,
-		Extra: meta.Extra,
-	}, nil
+	return NewMeta(meta), nil
 }
 
 func (a *Adapter) GetSecretData(ctx context.Context, id vault.MetaID, w io.Writer) error {
@@ -189,10 +203,7 @@ func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, r io.Reader) (
 	defer stream.CloseAndRecv()
 	req := &pb.PutSecretRequest{
 		Data: &pb.PutSecretRequest_Meta{
-			Meta: &pb.Meta{
-				Id:    string(meta.ID),
-				Extra: meta.Extra,
-			},
+			Meta: NewPBMeta(meta),
 		},
 	}
 	if err = stream.Send(req); err != nil {
@@ -222,9 +233,5 @@ func (a *Adapter) PutSecret(ctx context.Context, meta vault.Meta, r io.Reader) (
 	if err != nil {
 		return nil, err
 	}
-	return &vault.Meta{
-		ID:    vault.MetaID(resp.Id),
-		Alias: resp.Alias,
-		Extra: resp.Extra,
-	}, nil
+	return NewMeta(resp), nil
 }

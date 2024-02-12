@@ -36,6 +36,20 @@ func (m *Mockstorage) EXPECT() *MockstorageMockRecorder {
 	return m.recorder
 }
 
+// DeleteSecret mocks base method.
+func (m *Mockstorage) DeleteSecret(ctx context.Context, meta vault.Meta) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSecret", ctx, meta)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteSecret indicates an expected call of DeleteSecret.
+func (mr *MockstorageMockRecorder) DeleteSecret(ctx, meta interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecret", reflect.TypeOf((*Mockstorage)(nil).DeleteSecret), ctx, meta)
+}
+
 // GetSecretData mocks base method.
 func (m *Mockstorage) GetSecretData(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.DataReader, error) {
 	m.ctrl.T.Helper()
@@ -109,6 +123,36 @@ func (m *Mockstorage) PutSecret(ctx context.Context, meta vault.Meta, data *vaul
 func (mr *MockstorageMockRecorder) PutSecret(ctx, meta, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutSecret", reflect.TypeOf((*Mockstorage)(nil).PutSecret), ctx, meta, data)
+}
+
+// UpdateSecret mocks base method.
+func (m *Mockstorage) UpdateSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSecret", ctx, meta, data)
+	ret0, _ := ret[0].(*vault.Meta)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateSecret indicates an expected call of UpdateSecret.
+func (mr *MockstorageMockRecorder) UpdateSecret(ctx, meta, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecret", reflect.TypeOf((*Mockstorage)(nil).UpdateSecret), ctx, meta, data)
+}
+
+// UpdateSecretMeta mocks base method.
+func (m *Mockstorage) UpdateSecretMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSecretMeta", ctx, meta)
+	ret0, _ := ret[0].(*vault.Meta)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateSecretMeta indicates an expected call of UpdateSecretMeta.
+func (mr *MockstorageMockRecorder) UpdateSecretMeta(ctx, meta interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecretMeta", reflect.TypeOf((*Mockstorage)(nil).UpdateSecretMeta), ctx, meta)
 }
 
 // Mocklogger is a mock of logger interface.
