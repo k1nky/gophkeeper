@@ -69,6 +69,28 @@ func (suite *metaTestSuite) TestNewMetaAlreadyExists() {
 	suite.Assert().Nil(got)
 }
 
+func (suite *metaTestSuite) TestUpdateMetaEmptyID() {
+	m := vault.Meta{
+		UserID: 1,
+		Extra:  "some extra",
+		ID:     "",
+	}
+	got, err := suite.bs.UpdateMeta(context.TODO(), m)
+	suite.Assert().ErrorIs(err, vault.ErrEmptyMetaID)
+	suite.Assert().Nil(got)
+}
+
+func (suite *metaTestSuite) TestUpdateMetaNotExists() {
+	m := vault.Meta{
+		UserID: 1,
+		Extra:  "some extra",
+		ID:     "1",
+	}
+	got, err := suite.bs.UpdateMeta(context.TODO(), m)
+	suite.Assert().ErrorIs(err, vault.ErrMetaNotExists)
+	suite.Assert().Nil(got)
+}
+
 func (suite *metaTestSuite) TestGetMetaByIDNotExists() {
 	m, err := suite.bs.GetMetaByID(context.TODO(), vault.MetaID("not_exist"), 0)
 	suite.Assert().NoError(err)

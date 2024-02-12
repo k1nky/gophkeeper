@@ -10,7 +10,6 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	user "github.com/k1nky/gophkeeper/internal/entity/user"
-	vault "github.com/k1nky/gophkeeper/internal/entity/vault"
 )
 
 // MockauthService is a mock of authService interface.
@@ -79,89 +78,6 @@ func (m *MockauthService) Register(ctx context.Context, u user.User) (string, er
 func (mr *MockauthServiceMockRecorder) Register(ctx, u interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockauthService)(nil).Register), ctx, u)
-}
-
-// MockkeeperService is a mock of keeperService interface.
-type MockkeeperService struct {
-	ctrl     *gomock.Controller
-	recorder *MockkeeperServiceMockRecorder
-}
-
-// MockkeeperServiceMockRecorder is the mock recorder for MockkeeperService.
-type MockkeeperServiceMockRecorder struct {
-	mock *MockkeeperService
-}
-
-// NewMockkeeperService creates a new mock instance.
-func NewMockkeeperService(ctrl *gomock.Controller) *MockkeeperService {
-	mock := &MockkeeperService{ctrl: ctrl}
-	mock.recorder = &MockkeeperServiceMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockkeeperService) EXPECT() *MockkeeperServiceMockRecorder {
-	return m.recorder
-}
-
-// GetSecretData mocks base method.
-func (m *MockkeeperService) GetSecretData(ctx context.Context, uk vault.MetaID) (*vault.DataReader, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretData", ctx, uk)
-	ret0, _ := ret[0].(*vault.DataReader)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSecretData indicates an expected call of GetSecretData.
-func (mr *MockkeeperServiceMockRecorder) GetSecretData(ctx, uk interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretData", reflect.TypeOf((*MockkeeperService)(nil).GetSecretData), ctx, uk)
-}
-
-// GetSecretMeta mocks base method.
-func (m *MockkeeperService) GetSecretMeta(ctx context.Context, uk vault.MetaID) (*vault.Meta, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretMeta", ctx, uk)
-	ret0, _ := ret[0].(*vault.Meta)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSecretMeta indicates an expected call of GetSecretMeta.
-func (mr *MockkeeperServiceMockRecorder) GetSecretMeta(ctx, uk interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretMeta", reflect.TypeOf((*MockkeeperService)(nil).GetSecretMeta), ctx, uk)
-}
-
-// ListSecretsByUser mocks base method.
-func (m *MockkeeperService) ListSecretsByUser(ctx context.Context) (vault.List, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListSecretsByUser", ctx)
-	ret0, _ := ret[0].(vault.List)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListSecretsByUser indicates an expected call of ListSecretsByUser.
-func (mr *MockkeeperServiceMockRecorder) ListSecretsByUser(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSecretsByUser", reflect.TypeOf((*MockkeeperService)(nil).ListSecretsByUser), ctx)
-}
-
-// PutSecret mocks base method.
-func (m *MockkeeperService) PutSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PutSecret", ctx, meta, data)
-	ret0, _ := ret[0].(*vault.Meta)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PutSecret indicates an expected call of PutSecret.
-func (mr *MockkeeperServiceMockRecorder) PutSecret(ctx, meta, data interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutSecret", reflect.TypeOf((*MockkeeperService)(nil).PutSecret), ctx, meta, data)
 }
 
 // Mocklogger is a mock of logger interface.

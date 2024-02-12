@@ -103,6 +103,8 @@ func (suite *keeperServiceTestSuite) TestPutSecret() {
 		Alias: "alias#2",
 	}
 	suite.store.EXPECT().PutSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(&expected, nil)
+	// suite.store.EXPECT().UpdateSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(&expected, nil)
+	suite.store.EXPECT().GetSecretMetaByID(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 	got, err := suite.svc.PutSecret(context.TODO(), expected, nil)
 	suite.NoError(err)
 	suite.Equal(expected, *got)

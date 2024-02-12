@@ -33,6 +33,27 @@ func New(auth authService, keeper keeperService, log logger) *Adapter {
 	}
 }
 
+func NewPBMeta(m vault.Meta) *pb.Meta {
+	return &pb.Meta{
+		Id:        string(m.ID),
+		Extra:     m.Extra,
+		Alias:     m.Alias,
+		Type:      int32(m.Type),
+		Revision:  m.Revision,
+		IsDeleted: m.IsDeleted,
+	}
+}
+
+func NewMeta(pbm *pb.Meta) vault.Meta {
+	return vault.Meta{
+		Alias:    pbm.Alias,
+		Extra:    pbm.Extra,
+		ID:       vault.MetaID(pbm.Id),
+		Type:     vault.SecretType(pbm.Type),
+		Revision: pbm.Revision,
+	}
+}
+
 func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretMetaRequest) (*pb.Meta, error) {
 	var (
 		m   *vault.Meta
@@ -51,10 +72,7 @@ func (a *Adapter) GetSecretMeta(ctx context.Context, in *pb.GetSecretMetaRequest
 	if m == nil {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("[%s] not found", in.Key))
 	}
-	return &pb.Meta{
-		Id:    string(m.ID),
-		Extra: m.Extra,
-	}, nil
+	return NewPBMeta(*m), nil
 }
 
 func (a *Adapter) GetSecretData(in *pb.GetSecretDataRequest, stream pb.Keeper_GetSecretDataServer) error {
@@ -96,12 +114,9 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 		return status.Error(codes.Unknown, ErrUnexpected.Error())
 	}
 	claims, _ := user.GetEffectiveUser(stream.Context())
-	meta := vault.Meta{
-		ID:     vault.MetaID(req.GetMeta().Id),
-		Alias:  req.GetMeta().Alias,
-		UserID: claims.ID,
-		Extra:  req.GetMeta().Extra,
-	}
+	meta := NewMeta(req.GetMeta())
+	meta.UserID = claims.ID
+
 	// Данные секрета будут приходить частями в потоке stream.
 	// С помощью Pipe будем передавать данные также по частям в хранилище.
 	r, w := io.Pipe()
@@ -127,11 +142,7 @@ func (a *Adapter) PutSecret(stream pb.Keeper_PutSecretServer) error {
 		return status.Error(codes.Unknown, "saving data")
 	}
 	// отправляем в ответ мета-данные добавленного секрета
-	return stream.SendAndClose(&pb.Meta{
-		Id:    string(m.ID),
-		Alias: m.Alias,
-		Extra: m.Extra,
-	})
+	return stream.SendAndClose(NewPBMeta(*m))
 }
 
 func (a *Adapter) ListSecrets(ctx context.Context, in *pb.ListSecretRequest) (*pb.ListSecretResponse, error) {
@@ -141,10 +152,7 @@ func (a *Adapter) ListSecrets(ctx context.Context, in *pb.ListSecretRequest) (*p
 	}
 	list := &pb.ListSecretResponse{}
 	for _, v := range secrets {
-		list.Meta = append(list.Meta, &pb.Meta{
-			Id:    string(v.ID),
-			Extra: v.Extra,
-		})
+		list.Meta = append(list.Meta, NewPBMeta(v))
 	}
 	return list, nil
 }

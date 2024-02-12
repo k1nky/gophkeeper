@@ -14,6 +14,9 @@ type storage interface {
 	GetSecretMetaByID(ctx context.Context, metaID vault.MetaID, userID user.ID) (*vault.Meta, error)
 	GetSecretMetaByAlias(ctx context.Context, alias string, userID user.ID) (*vault.Meta, error)
 	ListSecretsByUser(ctx context.Context, userID user.ID) (vault.List, error)
+	DeleteSecret(ctx context.Context, meta vault.Meta) error
+	UpdateSecret(ctx context.Context, meta vault.Meta, data *vault.DataReader) (*vault.Meta, error)
+	UpdateSecretMeta(ctx context.Context, meta vault.Meta) (*vault.Meta, error)
 }
 
 type logger interface {

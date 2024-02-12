@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/k1nky/gophkeeper/internal/entity/user"
 )
@@ -28,14 +29,30 @@ type DataReader struct {
 	reader *bufio.Reader
 }
 
-type SecretType int
+type MetaID string
 
-const (
-	TypeText SecretType = iota
-	TypeLoginPassword
-	TypeCreditCard
-	TypeFile
-)
+// Meta мета-данные секрета.
+type Meta struct {
+	// Псевдоним
+	Alias string
+	// Идентификатор данных секрета
+	DataID string
+	// Поле для дополнительных данных
+	Extra string
+	// ИД секрета
+	ID MetaID
+	// Метка удаления, если true, то секрет можно считать удаленным
+	IsDeleted bool
+	// Тип секрета
+	Type SecretType
+	// Версия секрета. Алгоритм повышения версии должен работать с учетом того, что клиенты могут быть на разных хостах.
+	Revision int64
+	// ИД пользователя владельца секрета
+	UserID user.ID
+}
+
+// Список мета-данных секретов.
+type List []Meta
 
 func NewBytesBuffer(p []byte) *BytesBuffer {
 	return &BytesBuffer{
@@ -66,18 +83,7 @@ func (d *DataReader) Close() error {
 	return d.origin.Close()
 }
 
-type MetaID string
-
-type Meta struct {
-	UserID user.ID
-	ID     MetaID
-	Alias  string
-	Type   SecretType
-	Extra  string
-}
-
-type List []Meta
-
+// NewMetaID возвращает новый уникальный ИД секрета.
 func NewMetaID() MetaID {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -86,22 +92,25 @@ func NewMetaID() MetaID {
 	return MetaID(hex.EncodeToString(b))
 }
 
-func (t SecretType) String() string {
-	switch t {
-	case TypeText:
-		return "TEXT"
-	case TypeLoginPassword:
-		return "LOGIN_PASSWORD"
-	case TypeCreditCard:
-		return "CREDIT_CARD"
-	case TypeFile:
-		return "FILE"
-	}
-	return "UNKNOWN"
+func (m Meta) String() string {
+	return fmt.Sprintf("%s %s %s %d", m.ID, m.Alias, m.Type, m.Revision)
 }
 
-func (m Meta) String() string {
-	return fmt.Sprintf("%s %s %s", m.ID, m.Alias, m.Type)
+// CanUpdated возвращает true если секрет может быть обновлен секретом update.
+func (m Meta) CanUpdated(update Meta) bool {
+	return m.ID == update.ID && update.Revision > m.Revision
+}
+
+// Equal возвращает true если идентификаторы и версии m и target равны.
+func (m Meta) Equal(target Meta) bool {
+	return m.ID == target.ID && m.Revision == target.Revision
+}
+
+// NewRevision возвращает номер для новой версии секрета. Возможен конфликт, если несколько клиентов обновят секрет
+// с одним ИД с точностью до секунды. В рамках учебного проекта, данным фактом считаю можно пренебречь.
+func NewRevision() int64 {
+	// используем UTC чтобы не привязываться к верменной зоне клиента
+	return time.Now().UTC().Unix()
 }
 
 func (l List) String() string {
